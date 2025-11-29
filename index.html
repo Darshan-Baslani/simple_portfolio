@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darshan Baslani</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        /* --- 1. RESET & VARIABLES --- */
+        :root {
+            --bg-color: #fcfbf9;
+            /* Warm off-white */
+            --text-main: #2d2d2d;
+            --text-muted: #6e6e6e;
+            --accent: #d4a373;
+            /* Soft Earth tone */
+            --highlight: #faedcd;
+            /* Soft beige instead of green */
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --card-bg: #ffffff;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            --tag-bg: #f0f0f0;
+            --tag-text: #666;
+            --border-color: #eee;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            /* Slightly darker for better contrast */
+            --text-main: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --card-bg: #1e1e1e;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --highlight: #b08968;
+            /* Earthy brown/gold instead of green */
+            --tag-bg: #333;
+            --tag-text: #ccc;
+            --border-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            /* Prevent horizontal scroll */
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s ease;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        /* --- 2. LAYOUT & CONTAINER --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* --- 3. ANIMATIONS --- */
+        /* Keyframes for smooth entry */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Utility classes to apply animations with delays */
+        .animate-enter {
+            opacity: 0;
+            /* Start hidden */
+            animation: fadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .delay-1 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-2 {
+            animation-delay: 0.4s;
+        }
+
+        .delay-3 {
+            animation-delay: 0.6s;
+        }
+
+        .delay-4 {
+            animation-delay: 0.8s;
+        }
+
+        /* --- 4. NAVIGATION --- */
+        nav {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--text-main);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* --- 5. HERO SECTION --- */
+        .hero {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .greeting {
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .bio {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin-bottom: 3rem;
+        }
+
+        /* --- 6. ABOUT / NARRATIVE SECTION --- */
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            border-left: 3px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .content-section {
+            margin-bottom: 8rem;
+        }
+
+        .narrative-text p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            /* Use variable for dark mode support */
+        }
+
+        /* Highlight effect for specific words */
+        .highlight {
+            background: linear-gradient(120deg, var(--highlight) 0%, var(--highlight) 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 40%;
+            background-position: 0 90%;
+            padding: 0 2px;
+            transition: background-size 0.3s ease;
+        }
+
+        .highlight:hover {
+            background-size: 100% 100%;
+        }
+
+        /* --- 7. CARDS (Interests/Blogs) --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .card-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            background-color: var(--tag-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            color: var(--tag-text);
+        }
+
+        /* --- 8. FOOTER --- */
+        footer {
+            padding: 4rem 0;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .social-links {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .social-links a {
+            font-weight: 500;
+        }
+
+        /* --- MEDIA QUERIES --- */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero {
+                min-height: 50vh;
+            }
+
+            .nav-links {
+                display: none;
+                /* Keep it simple for mobile for now */
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="animate-enter">
+        <div class="container">
+            <nav>
+                <div class="logo">Darshan Baslani</div>
+                <div class="nav-links">
+                    <a href="#about">About</a>
+
+                    <a href="#blogs">Blogs</a> <a href="#contact">Contact</a>
+                    <button id="theme-toggle" aria-label="Toggle Dark Mode"
+                        style="background: none; border: none; cursor: pointer; color: inherit; font-size: 1.2rem; margin-left: 1rem;">
+                        🌙
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="hero">
+            <div class="greeting animate-enter delay-1">Hi there, I'm Darshan</div>
+            <h1 class="animate-enter delay-2">
+                A curious mind exploring the intersection of <br>
+                <span class="highlight">Computation</span> and <span class="highlight">Machine Intelligence</span>.
+            </h1>
+            <p class="bio animate-enter delay-3">
+                I am a student, a thinker, and an engineer. I craft elegant systems and learn new things(most of the
+                time).
+            </p>
+        </section>
+
+        <section id="about" class="content-section animate-enter delay-4">
+            <h2 class="section-title">Who I Am</h2>
+            <div class="narrative-text">
+                <p>
+                    I am a student of everything around me. My roots are humble. I come from a Tier 3 city in Gujarat
+                    and a college far from the spotlight, where the path wasn’t already paved for me. I realized early
+                    on that knowledge would not be handed to me; I would have to take it. Everything I know—from the
+                    fundamentals of systems to the complexities of AI—is the result of relentless self-learning.
+                </p>
+                <p>
+                    My strength is not loud; it lives in my curiosity, in my willingness to keep going when things get
+                    complex. I believe that the best work comes from a place of genuine curiosity. While I have a deep
+                    background in technical problem-solving, my true passion lies in <strong>simplifying
+                        complexity</strong>.
+                </p>
+                <p>
+                    Currently, I am refining this craft as a Master’s student in Data Science and a Machine Learning
+                    Engineer in training. Because I had to teach myself the foundations, I don't just use tools—I
+                    deconstruct them. Whether I am optimizing algorithms or architecting systems, I am driven by a
+                    single goal: to understand the "why" behind the "how."
+                </p>
+                <p>
+                    I am a student; of code, of math, of systems, of life. Work occupies most of my time, not out of
+                    pressure but out of passion. And when I’m not working, I consume ideas: podcasts, philosophy, blogs.
+                    I keep learning because it keeps me alive.
+                </p>
+                <p>
+                    I take inspiration from some legendary figures like Elon Musk, Srinivas Ramanujan, Isaac Newton,
+                    Albert Einstein, Vikram Sarabhai, and many more :)
+                </p>
+            </div>
+        </section>
+
+
+
+        <section id="blogs" class="content-section animate-enter delay-4">
+            <h2 class="section-title">Latest Thoughts</h2>
+            <div class="narrative-text">
+                <p>I write to clear my mind and share what I learn.</p>
+            </div>
+
+            <div class="grid">
+                <a href="https://medium.com/@dcbaslani/propositional-logic-25abd05e5aac" class="card" target="_blank">
+                    <span class="card-tag">Logic</span>
+                    <h3>Propositional Logic</h3>
+                    <p>A deep dive into the fundamental building blocks of mathematical logic.</p>
+                </a>
+
+                <a href="https://medium.com/@dcbaslani/raw-dawgging-linear-regression-4a533e1f8ad2" class="card"
+                    target="_blank">
+                    <span class="card-tag">Machine Learning</span>
+                    <h3>Raw Dawgging Linear Regression</h3>
+                    <p>Understanding Linear Regression by building it from the ground up.</p>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="animate-enter delay-4">
+        <div class="container" id="contact">
+            <p>You can reach me out at</p>
+            <div class="social-links">
+                <a href="mailto:dcbaslani@gmail.com">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani">GitHub</a>
+            </div>
+            <br>
+            <p style="font-size: 0.8rem; opacity: 0.6;">&copy; 2025 Darshan.</p>
+        </div>
+    </footer>
+
+
+
+    <script>
+        const toggleButton = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+
+        // Check for saved user preference, if any, on load of the website
+        const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+
+        if (currentTheme) {
+            htmlElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') {
+                toggleButton.textContent = '☀️';
+            }
+        }
+
+        toggleButton.addEventListener('click', () => {
+            if (htmlElement.getAttribute('data-theme') === 'dark') {
+                htmlElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                toggleButton.textContent = '🌙';
+            } else {
+                htmlElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                toggleButton.textContent = '☀️';
+            }
+        });
+    </script>
+
+</body>
+
+</html>
