@@ -1,0 +1,11 @@
+{
+  "posts": [
+    {
+      "slug": "01_hello_layout",
+      "title": "Hello, Layout! ; Visualizing Memory in CuTe",
+      "description": "Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.",
+      "tag": "CUDA",
+      "date": "2025-06-15"
+    }
+  ]
+}
