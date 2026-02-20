@@ -13,7 +13,7 @@
 (function() {
     'use strict';
 
-    const debug = true; // Set to false to disable console logs in production
+    const debug = false;
 
     function logEvent(category, action, label = null, value = null) {
         if (debug) {
@@ -95,6 +95,6 @@
         }
     });
 
-    console.log('[Tracker] Initialized');
+    if (debug) console.log('[Tracker] Initialized');
 
 })();

@@ -56,13 +56,17 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             background-color: var(--bg-color);
             font-family: var(--font-main);
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
-            /* Prevent horizontal scroll */
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
 
         a {
@@ -83,11 +87,10 @@
         }
 
         /* --- 3. ANIMATIONS --- */
-        /* Keyframes for smooth entry */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(16px);
             }
 
             to {
@@ -96,38 +99,24 @@
             }
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* Utility classes to apply animations with delays */
+        /* Scroll-triggered reveal */
         .animate-enter {
             opacity: 0;
-            /* Start hidden */
-            animation: fadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            transform: translateY(16px);
+            transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        .delay-1 {
-            animation-delay: 0.2s;
+        .animate-enter.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        .delay-2 {
-            animation-delay: 0.4s;
-        }
-
-        .delay-3 {
-            animation-delay: 0.6s;
-        }
-
-        .delay-4 {
-            animation-delay: 0.8s;
-        }
+        /* Staggered delays for children */
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; }
 
         /* --- 4. NAVIGATION --- */
         nav {
@@ -146,12 +135,14 @@
         .nav-links {
             display: flex;
             gap: 2rem;
+            align-items: center;
         }
 
         .nav-links a {
             font-size: 0.95rem;
             color: var(--text-muted);
             position: relative;
+            transition: color 0.3s ease;
         }
 
         .nav-links a::after {
@@ -161,7 +152,7 @@
             height: 1px;
             bottom: -4px;
             left: 0;
-            background-color: var(--text-main);
+            background-color: var(--accent);
             transition: width 0.3s ease;
         }
 
@@ -171,6 +162,23 @@
 
         .nav-links a:hover::after {
             width: 100%;
+        }
+
+        #theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            padding: 0.3rem;
+            border-radius: 6px;
+            transition: color 0.3s ease, background-color 0.3s ease;
+            line-height: 1;
+        }
+
+        #theme-toggle:hover {
+            color: var(--text-main);
+            background-color: var(--tag-bg);
         }
 
         /* --- 5. HERO SECTION --- */
@@ -252,13 +260,18 @@
             padding: 2rem;
             border-radius: 12px;
             box-shadow: var(--shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--border-color);
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        border-color 0.35s ease,
+                        background-color 0.4s ease;
             cursor: pointer;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.08);
+            border-color: var(--accent);
         }
 
         .card h3 {
@@ -275,10 +288,13 @@
             display: inline-block;
             font-size: 0.75rem;
             background-color: var(--tag-bg);
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
             margin-bottom: 1rem;
             color: var(--tag-text);
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
 
         /* --- 8. FOOTER --- */
@@ -288,6 +304,7 @@
             text-align: center;
             color: var(--text-muted);
             font-size: 0.9rem;
+            transition: border-color 0.4s ease;
         }
 
         .social-links {
@@ -299,6 +316,11 @@
 
         .social-links a {
             font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: var(--accent);
         }
 
         /* --- MEDIA QUERIES --- */
@@ -329,8 +351,7 @@
                     <a href="#about">About</a>
 
                     <a href="#blogs">Blogs</a> <a href="#contact">Contact</a>
-                    <button id="theme-toggle" aria-label="Toggle Dark Mode"
-                        style="background: none; border: none; cursor: pointer; color: inherit; font-size: 1.2rem; margin-left: 1rem;">
+                    <button id="theme-toggle" aria-label="Toggle Dark Mode">
                         🌙
                     </button>
                 </div>
@@ -394,6 +415,11 @@
             </div>
 
             <div class="grid">
+                <a href="blog.html?post=02_the_art_of_slicing" class="card">
+                    <span class="card-tag">CUDA</span>
+                    <h3>The Art of Slicing ; Partitioning Data Across Blocks and Threads</h3>
+                    <p>How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.</p>
+                </a>
                 <a href="blog.html?post=01_hello_layout" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>Hello, Layout! ; Visualizing Memory in CuTe</h3>
@@ -439,19 +465,18 @@
                 <a href="https://github.com/Darshan-Baslani">GitHub</a>
             </div>
             <br>
-            <p style="font-size: 0.8rem; opacity: 0.6;">&copy; 2025 Darshan.</p>
+            <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
 
 
     <script>
+        // Theme toggle
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
 
-        // Check for saved user preference, if any, on load of the website
-        const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-
+        const currentTheme = localStorage.getItem('theme');
         if (currentTheme) {
             htmlElement.setAttribute('data-theme', currentTheme);
             if (currentTheme === 'dark') {
@@ -470,6 +495,18 @@
                 toggleButton.textContent = '☀️';
             }
         });
+
+        // Scroll-triggered animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.animate-enter').forEach(el => observer.observe(el));
     </script>
 
     <script src="trackers.js"></script>

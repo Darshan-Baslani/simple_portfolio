@@ -6,6 +6,13 @@
       "description": "Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.",
       "tag": "CUDA",
       "date": "2025-06-15"
+    },
+    {
+      "slug": "02_the_art_of_slicing",
+      "title": "The Art of Slicing ; Partitioning Data Across Blocks and Threads",
+      "description": "How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.",
+      "tag": "CUDA",
+      "date": "2025-06-20"
     }
   ]
 }
