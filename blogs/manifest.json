@@ -13,6 +13,13 @@
       "description": "How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.",
       "tag": "CUDA",
       "date": "2025-06-20"
+    },
+    {
+      "slug": "03_the_naive_copy",
+      "title": "The Naive Copy ; Scalar vs. Vectorized Memory Movement",
+      "description": "Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.",
+      "tag": "CUDA",
+      "date": "2026-02-22"
     }
   ]
 }
