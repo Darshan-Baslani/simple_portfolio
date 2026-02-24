@@ -20,6 +20,13 @@
       "description": "Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.",
       "tag": "CUDA",
       "date": "2026-02-22"
+    },
+    {
+      "slug": "04_the_parallel_copy",
+      "title": "The Parallel Copy ; Orchestrating Threads with TiledCopy",
+      "description": "How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.",
+      "tag": "CUDA",
+      "date": "2026-02-24"
     }
   ]
 }
