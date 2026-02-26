@@ -27,6 +27,13 @@
       "description": "How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.",
       "tag": "CUDA",
       "date": "2026-02-24"
+    },
+    {
+      "slug": "05_swizzling",
+      "title": "Swizzling ; Avoiding Shared Memory Bank Conflicts",
+      "description": "How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.",
+      "tag": "CUDA",
+      "date": "2026-02-26"
     }
   ]
 }
