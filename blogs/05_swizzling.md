@@ -13,7 +13,7 @@ Here's the catch: bank conflicts depend on the **access pattern**, not just the 
 
 The culprit is regularity. Column-major strides like 8, 16, 32, or 128 divide evenly into 32 banks, so different columns in the same row keep landing on the same bank. The fix: **swizzle** the shared memory layout. CuTe's `Swizzle<B, M, S>` XORs parts of the address to break this regularity — one line of code, zero bank conflicts.
 
-> **B200 Note:** On Hopper/Blackwell, bank conflicts in shared memory are still a real bottleneck — especially in WGMMA where 128 threads read from smem simultaneously. The TMA engine writes conflict-free by design, but the MMA reads via a warpgroup pattern that can cause severe conflicts without swizzling.
+> **B200 Note:** On Blackwell (SM100), all supported MMA swizzle modes — including no-swizzle (8×16B interleaved) — are **bank-conflict-free on both the MMA read side and the TMA write side**. Swizzling still matters, though: using no-swizzle or smaller swizzle modes can reduce **TMA achievable throughput** when populating shared memory. So on Hopper/Blackwell the swizzle is primarily about maximizing TMA write bandwidth, not avoiding MMA read conflicts.
 
 ## 2. The Mental Model (The Visual)
 
@@ -401,7 +401,7 @@ auto smem_layout = composition(Swizzle<3, 2, 3>{},
 auto s_tensor = make_tensor(make_smem_ptr(smem), smem_layout);
 ```
 
-**Hardware Note:** Shared memory bank conflicts show up in `ncu` (NVIDIA Nsight Compute) under the metric `l1tex__data_bank_conflicts_pipe_lsu_mem_shared`. If this number is non-zero, you have conflicts. The fix is almost always a swizzle on your smem layout. On Hopper/Blackwell, the `SM90_64x...` WGMMA instructions read from shared memory in a specific pattern — CUTLASS's default smem layouts for WGMMA always include a swizzle matched to that pattern.
+**Hardware Note:** Shared memory bank conflicts show up in `ncu` (NVIDIA Nsight Compute) under the metric `l1tex__data_bank_conflicts_pipe_lsu_mem_shared`. If this number is non-zero, you have conflicts. The fix is almost always a swizzle on your smem layout. On Hopper/Blackwell, all MMA swizzle modes (including no-swizzle) are bank-conflict-free on the MMA read side — the swizzle in CUTLASS's default smem layouts for WGMMA/tcgen05 is there to maximize **TMA write throughput** when populating shared memory, not to avoid read-side bank conflicts.
 
 > **Gotcha — swizzle and `cosize`:** A swizzled layout may produce offsets larger than the plain layout's maximum. Always allocate shared memory based on `cosize(swizzled_layout)`, not `size(plain_layout)`. In practice, for well-chosen parameters (where B+M+S ≤ address bits), the max offset stays within the original range, but it's good practice to use `cosize` regardless.
 
