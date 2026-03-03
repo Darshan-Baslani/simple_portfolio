@@ -34,6 +34,13 @@
       "description": "How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.",
       "tag": "CUDA",
       "date": "2026-02-26"
+    },
+    {
+      "slug": "06_hello_mma",
+      "title": "Hello, MMA — Your First Tensor Core Instruction",
+      "description": "How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.",
+      "tag": "CUDA",
+      "date": "2026-03-03"
     }
   ]
 }
