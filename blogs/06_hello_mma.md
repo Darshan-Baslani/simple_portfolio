@@ -7,7 +7,7 @@
 
 Tutorials 03–05 were about *moving data* — getting floats from global memory into shared memory, fast and conflict-free. But at some point, you need to actually *compute*. On modern NVIDIA GPUs, the fastest math unit isn't the CUDA core — it's the **Tensor Core**.
 
-A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 `mma.sync.aligned.m16n8k16` instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix — **2048 multiply-adds in one clock cycle**, across all 32 threads of a warp.
+A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 `mma.sync.aligned.m16n8k16` instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix — **2048 multiply-adds in a single instruction**, across all 32 threads of a warp. (Note: this instruction has a latency of 20+ cycles; "single instruction" means one issue slot, not one clock cycle. See *Hardware note — throughput* below.)
 
 The catch: you can't just pass pointers. The hardware expects A, B, and C fragments to be distributed across 32 threads in a **very specific register layout**. Thread 0 holds certain rows and columns of A, thread 7 holds others, and the MMA instruction reaches into all 32 threads' registers simultaneously. Get the distribution wrong and you get garbage — or a hardware trap.
 
@@ -41,7 +41,7 @@ Think of a Tensor Core as a **stamping press** in a factory. You load raw-materi
    │  256 values  │     │   hardware does the rest     │     │ 128 vals │
    └──────────────┘     │                              │     └──────────┘
    ┌──────────────┐     │   2048 multiply-adds         │
-   │  B (8×16)    │────▶│   in ONE clock cycle         │
+   │  B (8×16)    │────▶│   in a SINGLE instruction    │
    │   half       │     │                              │
    │  128 values  │     └─────────────────────────────-┘
    └──────────────┘
@@ -296,7 +296,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 
 The ownership map reveals the hardware's register distribution: threads 0–3 and 16–19 alternate in 4-row blocks along M, and each thread owns pairs of adjacent columns. Thread T00 holds C[0][0], C[0][1], C[8][0], C[8][1] — four floats scattered across two 4-row blocks. You don't need to memorize this pattern; `partition_C` handles it automatically.
 
-The GEMM result is 16.0 everywhere: each entry is the dot product of a length-16 all-ones row from A with a length-16 all-ones row from B. One instruction, 2048 multiply-adds, 32 threads cooperating through their registers.
+The GEMM result is 16.0 everywhere: each entry is the dot product of a length-16 all-ones row from A with a length-16 all-ones row from B. One instruction, 2048 multiply-adds, 32 threads cooperating through their registers. (The instruction has 20+ cycles of latency, but it occupies only one issue slot — so pipelining multiple MMAs is how real kernels hide that cost.)
 
 ## 4. Step-by-Step Explanation
 
@@ -358,7 +358,7 @@ This is the magic line. `gemm()` dispatches the PTX `mma.sync` instruction, whic
 3. Multiplies the 16×16 matrix by the 8×16 matrix (as C += A × B^T).
 4. Accumulates the 16×8 result into all 32 threads' C registers (4 floats each = 128 total).
 
-All in one clock cycle. The `.sync` in the PTX name means all threads in the warp participate simultaneously — this is a collective operation, not a per-thread one.
+This is a single instruction, but **not** a single clock cycle — the MMA has a latency of 20+ cycles. However, it only occupies one issue slot, so the warp scheduler can issue other independent instructions (or another MMA from a different warp) while the Tensor Core is still working. Real GEMM kernels pipeline multiple MMAs to hide this latency. The `.sync` in the PTX name means all threads in the warp participate simultaneously — this is a collective operation, not a per-thread one.
 
 **Line: `copy(accum, tCgC);`**
 
@@ -406,9 +406,17 @@ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
 # Should print 8.0 or higher
 ```
 
-**Hardware note — throughput:**
+**Hardware note — latency vs. throughput:**
 
-On A100, one SM can issue one `mma.sync.m16n8k16` per cycle per warp scheduler. With 4 warp schedulers, that's 4 × 2048 = 8192 FMAs/cycle per SM. Multiply by 108 SMs and a 1.41 GHz clock: ~2.5 TFLOPS of Tensor Core throughput *per SM schedule*. But you'll only reach this if the data pipeline (Tutorials 03–05) keeps up.
+A single `mma.sync.m16n8k16` has a **latency** of 20+ clock cycles — the result isn't ready to read for that long. But the **maximum issue frequency** (throughput) is much higher than one-per-20-cycles, because the Tensor Core is pipelined. The exact throughput depends on the GPU architecture:
+
+| GPU | Max issue frequency (per SM partition) |
+| :--- | :--- |
+| A100 (SM80) | 1 MMA per 8 cycles |
+| Consumer Ampere (e.g. RTX 3090) | 1 MMA per 16 cycles |
+| Some other consumer GPUs | 1 MMA per 32 cycles |
+
+On A100, each SM has 4 partitions (sub-partitions / warp schedulers), so the SM-wide throughput is one MMA per 2 cycles, or 2048 FMAs every 2 cycles. Multiply by 108 SMs and a 1.41 GHz clock and you get the advertised Tensor Core TFLOPS — but only if the data pipeline (Tutorials 03–05) keeps the Tensor Cores fed and you have enough independent MMAs in flight to hide the 20+ cycle latency.
 
 > **Gotcha — layout mismatch:** If your smem layout doesn't match the TN convention (K stride-1), the MMA will read the wrong elements. The symptom is silently wrong results, not a crash. Always double-check that your A and B shared memory strides put K as stride-1 for TN atoms.
 
