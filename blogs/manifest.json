@@ -41,6 +41,13 @@
       "description": "How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.",
       "tag": "CUDA",
       "date": "2026-03-03"
+    },
+    {
+      "slug": "07_the_global_gemm",
+      "title": "The Global GEMM — Putting It All Together",
+      "description": "Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.",
+      "tag": "CUDA",
+      "date": "2026-03-07"
     }
   ]
 }
