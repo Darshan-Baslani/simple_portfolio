@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karan Raj</title>
+    <title>Darshan Baslani</title>
     <link rel="icon" type="image/png" href="favicon.png">
 
     <!-- Google tag (gtag.js) -->
@@ -104,7 +104,7 @@
             opacity: 0;
             transform: translateY(16px);
             transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
-                        transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+                transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .animate-enter.visible {
@@ -113,10 +113,21 @@
         }
 
         /* Staggered delays for children */
-        .delay-1 { transition-delay: 0.1s; }
-        .delay-2 { transition-delay: 0.2s; }
-        .delay-3 { transition-delay: 0.3s; }
-        .delay-4 { transition-delay: 0.4s; }
+        .delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .delay-4 {
+            transition-delay: 0.4s;
+        }
 
         /* --- 4. NAVIGATION --- */
         nav {
@@ -262,9 +273,9 @@
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
             transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                        box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                        border-color 0.35s ease,
-                        background-color 0.4s ease;
+                box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                border-color 0.35s ease,
+                background-color 0.4s ease;
             cursor: pointer;
         }
 
@@ -346,7 +357,7 @@
     <header class="animate-enter">
         <div class="container">
             <nav>
-                <div class="logo">Karan Raj</div>
+                <div class="logo">Darshan Baslani</div>
                 <div class="nav-links">
                     <a href="#about">About</a>
 
@@ -362,7 +373,7 @@
     <main class="container">
 
         <section class="hero">
-            <div class="greeting animate-enter delay-1">Hi there, I'm Karan</div>
+            <div class="greeting animate-enter delay-1">Hi there, I'm Darshan</div>
             <h1 class="animate-enter delay-2">
                 A curious mind exploring the intersection of <br>
                 <span class="highlight">Computation</span> and <span class="highlight">Machine Intelligence</span>.
@@ -418,12 +429,15 @@
                 <a href="blog.html?post=08_the_tma_revolution" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>The TMA Revolution (Async Copy)</h3>
-                    <p>With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.</p>
+                    <p>With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator
+                        (TMA). Instead of having threads manually calculating pointers and copying data, a single thread
+                        can offload the entire tile copy to dedicated hardware.</p>
                 </a>
                 <a href="blog.html?post=07_the_global_gemm" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>The Global GEMM — Putting It All Together</h3>
-                    <p>Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.</p>
+                    <p>Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA,
+                        and swizzled shared memory.</p>
                 </a>
                 <a href="blog.html?post=06_hello_mma" class="card">
                     <span class="card-tag">CUDA</span>
@@ -433,27 +447,32 @@
                 <a href="blog.html?post=05_swizzling" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>Swizzling ; Avoiding Shared Memory Bank Conflicts</h3>
-                    <p>How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.</p>
+                    <p>How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line
+                        of code.</p>
                 </a>
                 <a href="blog.html?post=04_the_parallel_copy" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>The Parallel Copy ; Orchestrating Threads with TiledCopy</h3>
-                    <p>How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.</p>
+                    <p>How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for
+                        coordinated, vectorized parallel copies.</p>
                 </a>
                 <a href="blog.html?post=03_the_naive_copy" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>The Naive Copy ; Scalar vs. Vectorized Memory Movement</h3>
-                    <p>Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.</p>
+                    <p>Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization
+                        fixes it.</p>
                 </a>
                 <a href="blog.html?post=02_the_art_of_slicing" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>The Art of Slicing ; Partitioning Data Across Blocks and Threads</h3>
-                    <p>How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.</p>
+                    <p>How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs
+                        and threads.</p>
                 </a>
                 <a href="blog.html?post=01_hello_layout" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>Hello, Layout! ; Visualizing Memory in CuTe</h3>
-                    <p>Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.</p>
+                    <p>Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.
+                    </p>
                 </a>
                 <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57"
                     class="card" target="_blank">
@@ -495,7 +514,7 @@
                 <a href="https://github.com/Darshan-Baslani">GitHub</a>
             </div>
             <br>
-            <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Karan.</p>
+            <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
