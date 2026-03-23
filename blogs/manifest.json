@@ -48,6 +48,13 @@
       "description": "Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.",
       "tag": "CUDA",
       "date": "2026-03-07"
+    },
+    {
+      "slug": "08_the_tma_revolution",
+      "title": "The TMA Revolution (Async Copy)",
+      "description": "With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.",
+      "tag": "CUDA",
+      "date": "2026-03-23"
     }
   ]
 }

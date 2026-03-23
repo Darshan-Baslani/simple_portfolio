@@ -5,6 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Darshan Baslani</title>
+    <script>
+        // Redirect old blog URLs: /?blog.html?post=slug -> /blog/slug/
+        (function() {
+            var urlStr = window.location.href;
+            var match = urlStr.match(/(\?|&)post=([a-zA-Z0-9_-]+)/);
+            if (match && match[2]) {
+                window.location.replace('/blog/' + match[2] + '/');
+            } else if (urlStr.includes('blog.html')) {
+                window.location.replace('/blog/');
+            }
+        })();
+    </script>
     <link rel="icon" type="image/png" href="favicon.png">
 
     <!-- Google tag (gtag.js) -->
@@ -318,7 +330,7 @@
                 <div class="nav-links">
                     <a href="#about">About</a>
 
-                    <a href="#blogs">Blogs</a> <a href="#contact">Contact</a>
+                    <a href="/blog/">Blogs</a> <a href="#contact">Contact</a>
                     <button id="theme-toggle" aria-label="Toggle Dark Mode">
                         🌙
                     </button>
@@ -340,124 +352,44 @@
                 time).
             </p>
         </section>
-
         <section id="about" class="content-section animate-enter delay-4">
             <h2 class="section-title">Who I Am</h2>
             <div class="narrative-text">
                 <p>
-                    I am a student of everything around me. My roots are humble. I come from a Tier 3 city in Gujarat
-                    and a college far from the spotlight, where the path wasn’t already paved for me. I realized early
-                    on that knowledge would not be handed to me; I would have to take it. Everything I know—from the
-                    fundamentals of systems to the complexities of AI—is the result of relentless self-learning.
+                    I am a student of everything around me. Coming from Palanpur, Gujarat , and a college far from the
+                    spotlight, the path into tech wasn’t already paved for me. I realized early on that
+                    knowledge would not be handed to me; I would have to take it. Everything I know—from the
+                    fundamentals of OS-level virtualization to the complexities of AI inference and GPU
+                    kernel optimization—is the result of relentless self-learning.
                 </p>
                 <p>
-                    My strength is not loud; it lives in my curiosity, in my willingness to keep going when things get
-                    complex. I believe that the best work comes from a place of genuine curiosity. While I have a deep
-                    background in technical problem-solving, my true passion lies in <strong>simplifying
-                        complexity</strong>.
+                    My strength is not loud; it lives in my curiosity and my willingness to keep going when things get
+                    complex. I believe the best work comes from a place of genuine curiosity. While my core expertise lies
+                    in low-level systems programming using C++, Go, and CUDA, my true passion lies in
+                    <strong>simplifying complexity</strong>. I actively work to break down templated memory layouts and
+                    tensor core partitions into accessible technical blogs.
                 </p>
                 <p>
-                    Currently, I am refining this craft as a Master’s student in Data Science and a Machine Learning
-                    Engineer in training. Because I had to teach myself the foundations, I don't just use tools—I
-                    deconstruct them. Whether I am optimizing algorithms or architecting systems, I am driven by a
-                    single goal: to understand the "why" behind the "how."
+                    Currently, I am an ML Systems Engineer and a Master’s student in Data Science.
+                    Because I had to teach myself the foundations, I don't just use tools—I deconstruct them. Whether I
+                    am writing custom autograd libraries, programming container runtimes from scratch, or adapting architectures to strict hardware constraints, I am driven by a single goal: to
+                    understand the "why" behind the "how."
                 </p>
                 <p>
-                    I am a student; of code, of math, of systems, of life. Work occupies most of my time, not out of
-                    pressure but out of passion. And when I’m not working, I consume ideas: podcasts, philosophy, blogs.
-                    I keep learning because it keeps me alive.
+                    I am a student of code, of math, of systems, and of life. Work occupies most of my time, not out of
+                    pressure but out of passion. Whether I am optimizing pipelines for real-world interactions 
+                    or pushing the limits of the GPUs, I keep learning because it is how I grow.
                 </p>
                 <p>
-                    I take inspiration from some legendary figures like Elon Musk, Srinivas Ramanujan, Isaac Newton,
-                    Albert Einstein, Vikram Sarabhai, and many more :)
+                    Along the way, I draw inspiration from legendary thinkers and builders like Srinivas Ramanujan,
+                    Vikram Sarabhai, Albert Einstein, and Elon Musk. :)
                 </p>
             </div>
         </section>
 
 
 
-        <section id="blogs" class="content-section animate-enter delay-4">
-            <h2 class="section-title">Latest Thoughts</h2>
-            <div class="narrative-text">
-                <p>I write to clear my mind and share what I learn.</p>
-            </div>
 
-            <div class="grid">
-                <a href="blog.html?post=08_the_tma_revolution" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The TMA Revolution (Async Copy)</h3>
-                    <p>With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator
-                        (TMA). Instead of having threads manually calculating pointers and copying data, a single thread
-                        can offload the entire tile copy to dedicated hardware.</p>
-                </a>
-                <a href="blog.html?post=07_the_global_gemm" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Global GEMM — Putting It All Together</h3>
-                    <p>Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA,
-                        and swizzled shared memory.</p>
-                </a>
-                <a href="blog.html?post=06_hello_mma" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Hello, MMA — Your First Tensor Core Instruction</h3>
-                    <p>How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.</p>
-                </a>
-                <a href="blog.html?post=05_swizzling" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Swizzling ; Avoiding Shared Memory Bank Conflicts</h3>
-                    <p>How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line
-                        of code.</p>
-                </a>
-                <a href="blog.html?post=04_the_parallel_copy" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Parallel Copy ; Orchestrating Threads with TiledCopy</h3>
-                    <p>How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for
-                        coordinated, vectorized parallel copies.</p>
-                </a>
-                <a href="blog.html?post=03_the_naive_copy" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Naive Copy ; Scalar vs. Vectorized Memory Movement</h3>
-                    <p>Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization
-                        fixes it.</p>
-                </a>
-                <a href="blog.html?post=02_the_art_of_slicing" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Art of Slicing ; Partitioning Data Across Blocks and Threads</h3>
-                    <p>How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs
-                        and threads.</p>
-                </a>
-                <a href="blog.html?post=01_hello_layout" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Hello, Layout! ; Visualizing Memory in CuTe</h3>
-                    <p>Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.
-                    </p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57"
-                    class="card" target="_blank">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Beating PyTorch: Writing a Faster Softmax Kernel in CUDA</h3>
-                    <p>Writing a faster Softmax kernel in CUDA than PyTorch's implementation.</p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/stable-diffusion-1-5-how-i-optimized-it-a-worklog-09aa56498cf2"
-                    class="card" target="_blank">
-                    <span class="card-tag">Machine Learning</span>
-                    <h3>Stable Diffusion 1.5: How I Optimized It</h3>
-                    <p>A detailed worklog on optimizing Stable Diffusion 1.5 for performance.</p>
-                </a>
-
-                <a href="https://medium.com/@dcbaslani/propositional-logic-25abd05e5aac" class="card" target="_blank">
-                    <span class="card-tag">Logic</span>
-                    <h3>Propositional Logic</h3>
-                    <p>A deep dive into the fundamental building blocks of mathematical logic.</p>
-                </a>
-
-                <a href="https://medium.com/@dcbaslani/raw-dawgging-linear-regression-4a533e1f8ad2" class="card"
-                    target="_blank">
-                    <span class="card-tag">Machine Learning</span>
-                    <h3>Raw Dawgging Linear Regression</h3>
-                    <p>Understanding Linear Regression by building it from the ground up.</p>
-                </a>
-            </div>
-        </section>
 
     </main>
 

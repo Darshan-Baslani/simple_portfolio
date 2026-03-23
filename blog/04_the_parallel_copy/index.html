@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Parallel Copy ; Orchestrating Threads with TiledCopy — Darshan Baslani</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-7S3KXBK6D2');
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+    <style>
+        :root {
+            --bg-color: #fcfbf9;
+            --text-main: #2d2d2d;
+            --text-muted: #6e6e6e;
+            --accent: #d4a373;
+            --highlight: #faedcd;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --card-bg: #ffffff;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            --tag-bg: #f0f0f0;
+            --tag-text: #666;
+            --border-color: #eee;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-main: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --card-bg: #1e1e1e;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --highlight: #b08968;
+            --tag-bg: #333;
+            --tag-text: #ccc;
+            --border-color: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        a { text-decoration: none; color: inherit; transition: color 0.3s ease; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+        
+        nav { padding: 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { font-size: 0.95rem; color: var(--text-muted); position: relative; transition: color 0.3s ease; }
+        .nav-links a::after { content: ''; position: absolute; width: 0; height: 1px; bottom: -4px; left: 0; background-color: var(--accent); transition: width 0.3s ease; }
+        .nav-links a:hover { color: var(--text-main); }
+        .nav-links a:hover::after { width: 100%; }
+        #theme-toggle { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.1rem; padding: 0.3rem; border-radius: 6px; transition: color 0.3s ease, background-color 0.3s ease; line-height: 1; }
+        #theme-toggle:hover { color: var(--text-main); background-color: var(--tag-bg); }
+
+        footer { padding: 4rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; transition: border-color 0.4s ease; }
+        .social-links { margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem; }
+        .social-links a { font-weight: 500; transition: color 0.3s ease; }
+        .social-links a:hover { color: var(--accent); }
+
+        .blog-meta { margin-top: 2rem; margin-bottom: 2rem; }
+        .blog-back { display: inline-block; color: var(--accent); font-size: 0.95rem; margin-bottom: 1.5rem; transition: opacity 0.3s ease; }
+        .blog-back:hover { opacity: 0.7; }
+        .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
+        .blog-date { font-size: 0.85rem; color: var(--text-muted); }
+
+        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
+        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
+        .blog-error a { color: var(--accent); }
+        .blog-error a:hover { text-decoration: underline; }
+
+        .blog-content { margin-bottom: 4rem; }
+        .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
+        .blog-content h2 { font-size: 1.6rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .blog-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; }
+        .blog-content p { font-size: 1.05rem; margin-bottom: 1.25rem; color: var(--text-main); }
+        .blog-content strong { font-weight: 700; }
+        .blog-content a { color: var(--accent); text-decoration: underline; }
+        .blog-content a:hover { opacity: 0.8; }
+        .blog-content ul, .blog-content ol { list-style: revert; margin-bottom: 1.25rem; padding-left: 2rem; }
+        .blog-content li { margin-bottom: 0.4rem; font-size: 1.05rem; }
+        .blog-content blockquote { border-left: 3px solid var(--accent); padding: 0.75rem 1.25rem; margin: 1.5rem 0; background: var(--card-bg); border-radius: 0 8px 8px 0; }
+        .blog-content blockquote p { color: var(--text-muted); margin-bottom: 0; }
+        .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
+        .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
+        .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
+        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content th { background: var(--card-bg); font-weight: 600; }
+        .blog-content tr:nth-child(even) { background: var(--card-bg); }
+        .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
+        .blog-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1.5rem 0; }
+
+        @media (max-width: 768px) {
+            .blog-content h1 { font-size: 1.7rem; }
+            .blog-content h2 { font-size: 1.3rem; }
+            .nav-links { display: none; }
+            .blog-content pre code { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo"><a href="/">Darshan Baslani</a></div>
+                <div class="nav-links">
+                    <a href="/#about">About</a>
+                    <a href="/blog/">Blogs</a>
+                    <a href="/#contact">Contact</a>
+                    <button id="theme-toggle" aria-label="Toggle Dark Mode">🌙</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="blog-loading" class="blog-loading">
+            <div class="spinner"></div>
+            <p>Loading post...</p>
+        </div>
+
+        <div id="blog-error" class="blog-error" style="display: none;">
+            <h2>Post not found</h2>
+            <p>The blog post you're looking for doesn't exist or has been removed.</p>
+            <a href="/blog/">&larr; Back to all posts</a>
+        </div>
+
+        <article id="blog-article" style="display: none;">
+            <div class="blog-meta">
+                <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
+                <div>
+                    <span id="blog-tag" class="blog-tag"></span>
+                    <span id="blog-date" class="blog-date"></span>
+                </div>
+            </div>
+            <div id="blog-content" class="blog-content"></div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container" id="contact">
+            <p>You can reach me out at</p>
+            <div class="social-links">
+                <a href="mailto:dcbaslani@gmail.com">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani">GitHub</a>
+            </div>
+            <br>
+            <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
+        </div>
+    </footer>
+
+    <script>
+        const toggleButton = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) {
+            htmlElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
+        }
+        toggleButton.addEventListener('click', () => {
+            if (htmlElement.getAttribute('data-theme') === 'dark') {
+                htmlElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                toggleButton.textContent = '🌙';
+            } else {
+                htmlElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                toggleButton.textContent = '☀️';
+            }
+        });
+
+        // Hardcoded slug to avoid parsing it from URL
+        const SLUG = `04_the_parallel_copy`;
+
+        (async function () {
+            const loadingEl = document.getElementById('blog-loading');
+            const errorEl = document.getElementById('blog-error');
+            const articleEl = document.getElementById('blog-article');
+            const contentEl = document.getElementById('blog-content');
+            const tagEl = document.getElementById('blog-tag');
+            const dateEl = document.getElementById('blog-date');
+
+            function showError() {
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+            }
+
+            try {
+                // Fetch manifest to get metadata
+                const manifestRes = await fetch('/blogs/manifest.json');
+                if (!manifestRes.ok) throw new Error('Manifest not found');
+                const manifest = await manifestRes.json();
+
+                const post = manifest.posts.find(p => p.slug === SLUG);
+                if (!post) {
+                    showError();
+                    return;
+                }
+
+                // Fetch the markdown file
+                const mdRes = await fetch(`/blogs/${SLUG}.md`);
+                if (!mdRes.ok) {
+                    showError();
+                    return;
+                }
+                const mdTextRaw = await mdRes.text();
+                const mdText = mdTextRaw.replaceAll('—', '; ');
+
+                // Configure marked
+                marked.setOptions({ gfm: true, breaks: false });
+
+                // Render markdown
+                contentEl.innerHTML = marked.parse(mdText);
+                contentEl.querySelectorAll('pre code').forEach(block => {
+                    hljs.highlightElement(block);
+                });
+
+                // Fill metadata
+                tagEl.textContent = post.tag;
+                const dateObj = new Date(post.date + 'T00:00:00');
+                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Show article
+                loadingEl.style.display = 'none';
+                articleEl.style.display = 'block';
+
+            } catch (err) {
+                console.error('Failed to load blog:', err);
+                showError();
+            }
+        })();
+    </script>
+    <script src="/trackers.js"></script>
+</body>
+</html>
