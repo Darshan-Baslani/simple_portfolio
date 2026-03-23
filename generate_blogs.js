@@ -462,7 +462,10 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
                     return;
                 }
                 const mdTextRaw = await mdRes.text();
-                const mdText = mdTextRaw.replaceAll('—', '; ');
+                let mdText = mdTextRaw.replaceAll('—', '; ');
+                
+                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
+                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
 
                 // Configure marked
                 marked.setOptions({ gfm: true, breaks: false });
