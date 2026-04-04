@@ -55,6 +55,13 @@
       "description": "With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.",
       "tag": "CUDA",
       "date": "2026-03-23"
+    },
+    {
+      "slug": "09_wgmma",
+      "title": "WGMMA ; Warpgroup MMA",
+      "description": "How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.",
+      "tag": "CUDA",
+      "date": "2026-04-04"
     }
   ]
 }
