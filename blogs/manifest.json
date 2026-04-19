@@ -62,6 +62,13 @@
       "description": "How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.",
       "tag": "CUDA",
       "date": "2026-04-04"
+    },
+    {
+      "slug": "cute-dsl-blog",
+      "title": "Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry",
+      "description": "Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.",
+      "tag": "CUDA",
+      "date": "2026-04-19"
     }
   ]
 }

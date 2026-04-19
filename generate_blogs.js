@@ -128,6 +128,11 @@ const indexHtmlTemplate = `<!DOCTYPE html>
             
             <div class="grid">
                 <!-- DYNAMIC CONTENT HERE -->
+                <a href="/blog/cute-dsl-blog/" class="card">
+                    <span class="card-tag">CUDA</span>
+                    <h3>Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry</h3>
+                    <p>Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.</p>
+                </a>
                 <a href="/blog/09_wgmma/" class="card">
                     <span class="card-tag">CUDA</span>
                     <h3>WGMMA ; Warpgroup MMA</h3>
