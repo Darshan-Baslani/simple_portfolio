@@ -66,16 +66,17 @@
         });
     }
 
-    // Throttle scroll event
-    let scrollTimeout;
+    // Throttle scroll event via requestAnimationFrame (aligns with display refresh)
+    let scrollTicking = false;
     window.addEventListener('scroll', () => {
-        if (!scrollTimeout) {
-            scrollTimeout = setTimeout(() => {
+        if (!scrollTicking) {
+            requestAnimationFrame(() => {
                 trackScroll();
-                scrollTimeout = null;
-            }, 100);
+                scrollTicking = false;
+            });
+            scrollTicking = true;
         }
-    });
+    }, { passive: true });
 
     // 3. Click Tracking
     document.addEventListener('click', (event) => {

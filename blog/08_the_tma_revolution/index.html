@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The TMA Revolution (Async Copy) — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/08_the_tma_revolution/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="The TMA Revolution (Async Copy)">
+    <meta property="og:description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/08_the_tma_revolution/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-03-23">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="The TMA Revolution (Async Copy)">
+    <meta name="twitter:description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The TMA Revolution (Async Copy)",
+  "description": "With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.",
+  "datePublished": "2026-03-23",
+  "dateModified": "2026-03-23",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/08_the_tma_revolution/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 852,
+  "timeRequired": "PT5M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,178 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-03-23" itemprop="datePublished">March 23, 2026</time>
+                    <span class="blog-readtime">&middot; 5 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>The TMA Revolution (Async Copy)</h1>
+<p><strong>Difficulty:</strong> Advanced
+<strong>Prerequisites:</strong> <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a></p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>&quot;The CPU is wasting time calculating addresses for copies. Let the hardware do it.&quot;</p>
+<p>Until now, we have used <code>TiledCopy</code> to coordinate warps and threads to fetch data from global memory into shared memory. The problem? <strong>Every single thread is computing memory addresses.</strong> For each element loaded, threads execute instructions just to resolve <code>address = coord · stride</code>. This burns registers and arithmetic logic unit (ALU) cycles that should be spent on matrix multiplication.</p>
+<p>With the Hopper and Blackwell architectures, NVIDIA introduced the <strong>Tensor Memory Accelerator (TMA)</strong>. Instead of having 128 threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.</p>
+<h2>2. The Mental Model (The Visual)</h2>
+<p>If <code>TiledCopy</code> is a warehouse crew of 128 workers carrying boxes (where each worker calculates their path), <code>TMA</code> is an <strong>autonomous forklift with a manifest</strong>. </p>
+<pre><code class="language-text">TiledCopy (threads do address math):
+
+  128 workers compute addresses:
+    address = coord · stride
+  Then load/store each element.
+
+  [threads] ──address math──▶ LDG/LDS ──▶ smem
+
+TMA (hardware does address math):
+
+  1 dispatcher submits a manifest (descriptor).
+  The TMA engine moves the entire pallet.
+
+  [one thread] ──submit manifest──▶ TMA engine ──▶ smem
+</code></pre>
+<p>You create the manifest on the host, hand it to the forklift inside the kernel, and the hardware handles the rest asynchronously.</p>
+<h2>3. The Solution (The Code)</h2>
+<p>Here is a minimal, complete C++ example of copying a 128×64 tile using TMA. Notice how no threads are computing layouts inside the kernel loop!</p>
+<pre><code class="language-Cpp">#include &lt;cute/tensor.hpp&gt;
+#include &lt;cute/arch/copy_sm90.hpp&gt;
+#include &lt;cutlass/arch/barrier.h&gt;
+#include &lt;cutlass/numeric_types.h&gt;
+#include &lt;cstdio&gt;
+
+using namespace cute;
+
+constexpr int BLK_M = 128;
+constexpr int BLK_K = 64;
+
+// Shared memory workspace
+struct SharedStorage {
+    alignas(128) cutlass::half_t smem[BLK_M * BLK_K];
+    uint64_t tma_barrier;
+};
+
+template &lt;class TmaDesc&gt;
+__global__ void tma_copy_kernel(TmaDesc tma) {
+    __shared__ SharedStorage ss;
+
+    // 1. Describe the shared memory target
+    auto sA_layout = make_layout(make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                                 make_stride(Int&lt;BLK_K&gt;{}, Int&lt;1&gt;{}));
+    auto sA = make_tensor(make_smem_ptr(ss.smem), sA_layout);
+
+    // 2. Fetch the global memory tensor from the TMA descriptor
+    auto gA = tma.get_tma_tensor(make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}));
+
+    // 3. Partition the TMA copy
+    auto [tAgA, tAsA] = tma_partition(
+        tma,
+        Int&lt;0&gt;{},             // CTA block coordinate
+        Layout&lt;_1&gt;{},         // Grid layout
+        group_modes&lt;0,2&gt;(sA), // Collapse modes for flat copy
+        group_modes&lt;0,2&gt;(gA)
+    );
+
+    // 4. Dispatch the autonomous forklift!
+    if (threadIdx.x == 0) {
+        using Bar = cutlass::arch::ClusterTransactionBarrier;
+        
+        // Initialize the mbarrier
+        Bar::init(&amp;ss.tma_barrier, 1);
+        int bytes_to_copy = BLK_M * BLK_K * sizeof(cutlass::half_t);
+        
+        // Announce the expected transaction size
+        Bar::arrive_and_expect_tx(&amp;ss.tma_barrier, bytes_to_copy);
+        
+        // Issue the async copy using the manifest
+        copy(tma.with(ss.tma_barrier), tAgA, tAsA);
+        
+        // Block until the forklift delivers the pallet
+        Bar::wait(&amp;ss.tma_barrier, 0);
+    }
+    __syncthreads();
+    
+    // Now sA is filled and ready for computation!
+}
+
+void host_launch_example() {
+    // We must build the TMA descriptor on the HOST.
+    cutlass::half_t* d_A;
+    cudaMalloc(&amp;d_A, BLK_M * BLK_K * sizeof(cutlass::half_t));
+
+    auto mA_layout = make_layout(make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                                 make_stride(Int&lt;BLK_K&gt;{}, Int&lt;1&gt;{}));
+    auto mA = make_tensor(make_gmem_ptr(d_A), mA_layout);
+    
+    auto sA_layout = make_layout(make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                                 make_stride(Int&lt;BLK_K&gt;{}, Int&lt;1&gt;{}));
+
+    // Printing the manifest for the autonomous forklift
+    auto tma = make_tma_atom(SM90_TMA_LOAD{}, mA, sA_layout,
+                             make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}));
+
+    // Launch the kernel
+    tma_copy_kernel&lt;&lt;&lt;1, 128&gt;&gt;&gt;(tma);
+    cudaDeviceSynchronize();
+    cudaFree(d_A);
+}
+
+int main() {
+    host_launch_example();
+    printf(&quot;TMA Copy Successful!\n&quot;);
+    return 0;
+}
+</code></pre>
+<h2>4. Step-by-Step Explanation</h2>
+<p>Line <code>make_tma_atom(SM90_TMA_LOAD{}, mA, sA_layout, ...)</code>: This runs entirely on the host. It bundles the <code>Layout&lt;Shape, Stride&gt;</code> math into a hardware-readable manifest. We are telling the GPU how global memory and shared memory relate, <em>before</em> the kernel starts.</p>
+<p>Line <code>auto [tAgA, tAsA] = tma_partition(...)</code>: We slice up the tensors for the copy. Unlike <code>TiledCopy</code> which assigns slices per-thread, <code>tma_partition</code> treats the CTA as one large worker.</p>
+<p>Line <code>if (threadIdx.x == 0)</code>: Only <strong>one dispatcher thread</strong> is needed to initiate the TMA load. </p>
+<p>Line <code>copy(tma.with(&amp;ss.tma_barrier), tAgA, tAsA)</code>: The actual dispatch command. The hardware asynchronously begins fetching the entire tile into shared memory.</p>
+<p>Line <code>Bar::wait(...)</code>: Because the forklift works asynchronously, we must wait at the loading dock (the <code>mbarrier</code>) before we can safely read the data.</p>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy:</strong> <code>Tensor Memory Accelerator (TMA)</code> is an <strong>autonomous forklift with a manifest</strong>. You don’t have 128 workers carrying boxes anymore. One dispatcher hands the forklift a manifest (the TMA descriptor), and the hardware moves the entire pallet into shared memory. <code>make_tma_atom</code> is printing the manifest for the autonomous forklift (the TMA descriptor).</p>
+<p><strong>Hardware Constraints &amp; Gotchas:</strong></p>
+<blockquote>
+<p><strong>Gotcha ;  TMA descriptors are host-built.</strong> <code>make_tma_atom</code> must run on the CPU. The descriptor encodes the address math for the tile and cannot be created inside the kernel.</p>
+</blockquote>
+<blockquote>
+<p><strong>Gotcha ;  TMA is async and barrier-driven.</strong> One thread launches the copy; an mbarrier (<code>ClusterTransactionBarrier</code>) is required before any thread reads from smem. Without the <code>wait()</code>, you will read garbage data.</p>
+</blockquote>
+<blockquote>
+<p><strong>Gotcha ;  TMA prefers static layouts.</strong> Tile shape and strides should be <code>Int&lt;N&gt;{}</code> so the descriptor is fully static and the copy is vector-friendly. CuTe uses these static layouts at compile-time to guarantee contiguity and optimize the transfer.</p>
+</blockquote>
+<blockquote>
+<p><strong>B200/Hopper Note:</strong> TMA is the primary way to saturate memory bandwidth on SM90+ architectures. Understanding strides (<code>address = coord · stride</code>) is the only way to program the TMA descriptor correctly!</p>
+</blockquote>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +366,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `08_the_tma_revolution`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

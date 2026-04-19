@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello, MMA ;  Your First Tensor Core Instruction — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/06_hello_mma/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Hello, MMA ;  Your First Tensor Core Instruction">
+    <meta property="og:description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/06_hello_mma/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-03-03">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Hello, MMA ;  Your First Tensor Core Instruction">
+    <meta name="twitter:description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Hello, MMA — Your First Tensor Core Instruction",
+  "description": "How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.",
+  "datePublished": "2026-03-03",
+  "dateModified": "2026-03-03",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/06_hello_mma/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 3259,
+  "timeRequired": "PT17M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,490 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-03-03" itemprop="datePublished">March 3, 2026</time>
+                    <span class="blog-readtime">&middot; 17 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>Hello, MMA ;  Your First Tensor Core Instruction</h1>
+<p><strong>Difficulty:</strong> Intermediate
+<strong>Prerequisites:</strong> <a href="/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a> (same partition API pattern)</p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>Tutorials 03–05 were about <em>moving data</em> ;  getting floats from global memory into shared memory, fast and conflict-free. But at some point, you need to actually <em>compute</em>. On modern NVIDIA GPUs, the fastest math unit isn&#39;t the CUDA core ;  it&#39;s the <strong>Tensor Core</strong>.</p>
+<p>A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 <code>mma.sync.aligned.m16n8k16</code> instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix ;  <strong>2048 multiply-adds in a single instruction</strong>, across all 32 threads of a warp. (Note: this instruction has a latency of 20+ cycles; &quot;single instruction&quot; means one issue slot, not one clock cycle. See <em>Hardware note ;  throughput</em> below.)</p>
+<p>The catch: you can&#39;t just pass pointers. The hardware expects A, B, and C fragments to be distributed across 32 threads in a <strong>very specific register layout</strong>. Thread 0 holds certain rows and columns of A, thread 7 holds others, and the MMA instruction reaches into all 32 threads&#39; registers simultaneously. Get the distribution wrong and you get garbage ;  or a hardware trap.</p>
+<p>CuTe&#39;s <code>TiledMMA</code> handles this distribution for you, using the <strong>exact same partition pattern</strong> you learned with <code>TiledCopy</code>:</p>
+<table>
+<thead>
+<tr>
+<th align="left">TiledCopy (Tutorial 04)</th>
+<th align="left">TiledMMA (This Tutorial)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>make_tiled_copy(Copy_Atom, thr, val)</code></td>
+<td align="left"><code>make_tiled_mma(MMA_Atom&lt;Op&gt;{})</code></td>
+</tr>
+<tr>
+<td align="left"><code>get_thread_slice(tid)</code></td>
+<td align="left"><code>get_thread_slice(tid)</code></td>
+</tr>
+<tr>
+<td align="left"><code>partition_S</code> / <code>partition_D</code></td>
+<td align="left"><code>partition_A</code> / <code>partition_B</code> / <code>partition_C</code></td>
+</tr>
+<tr>
+<td align="left"><code>copy(tiled_copy, src, dst)</code></td>
+<td align="left"><code>gemm(tiled_mma, fragA, fragB, fragC)</code></td>
+</tr>
+</tbody></table>
+<p>Same API shape, different hardware backend. If you understood Tutorial 04&#39;s ownership maps and partitions, you already know 80% of this tutorial.</p>
+<blockquote>
+<p><strong>B200 Note:</strong> On Hopper/Blackwell, the same <code>TiledMMA</code> pattern drives WGMMA (Warpgroup MMA) ;  128 threads feeding a larger Tensor Core instruction. Tutorial 09 covers that. The API is identical; only the atom changes.</p>
+</blockquote>
+<h2>2. The Mental Model (The Visual)</h2>
+<h3>The Stamping Press</h3>
+<p>Think of a Tensor Core as a <strong>stamping press</strong> in a factory. You load raw-material trays (A and B fragments) into specific slots, press the button, and out comes the product (C accumulator). The press is fixed-size ;  it always stamps a 16×8 tile of results from 16×16 and 8×16 inputs.</p>
+<pre><code class="language-text">                        ┌─────────────────────────────┐
+                        │      STAMPING PRESS          │
+                        │   (One MMA Instruction)      │
+                        │                              │
+   ┌──────────────┐     │                              │     ┌──────────┐
+   │  A (16×16)   │────▶│   32 threads cooperate:      │────▶│ C (16×8) │
+   │   half       │     │   each loads its tray slot,  │     │  float   │
+   │  256 values  │     │   hardware does the rest     │     │ 128 vals │
+   └──────────────┘     │                              │     └──────────┘
+   ┌──────────────┐     │   2048 multiply-adds         │
+   │  B (8×16)    │────▶│   in a SINGLE instruction    │
+   │   half       │     │                              │
+   │  128 values  │     └─────────────────────────────-┘
+   └──────────────┘
+</code></pre>
+<h3>Per-Thread Fragment Sizes</h3>
+<p>The 256 values of A, 128 values of B, and 128 values of C are split evenly across 32 threads:</p>
+<pre><code class="language-text">Thread #7 (one of 32):
+┌────────────────────────────────────────────────────┐
+│  Registers:                                        │
+│    A fragment: 8 half values   (256 total / 32)    │
+│    B fragment: 4 half values   (128 total / 32)    │
+│    C fragment: 4 float values  (128 total / 32)    │
+│                                                    │
+│  The hardware knows exactly which matrix cells     │
+│  these 8+4+4 values correspond to.                 │
+│  CuTe knows too ;  that&#39;s what partition_A/B/C do.  │
+└────────────────────────────────────────────────────┘
+</code></pre>
+<p>You don&#39;t need to know the exact register-to-coordinate mapping (it&#39;s in the PTX docs if you&#39;re curious). CuTe&#39;s partition functions handle it transparently ;  just like <code>TiledCopy</code> handles thread-to-element mapping without you memorizing a table.</p>
+<h3>The API Flow</h3>
+<pre><code class="language-text">make_tiled_mma(MMA_Atom&lt;Op&gt;{})
+         │
+    get_thread_slice(tid)
+         │
+    ┌────┴──────────────────┬──────────────────┐
+    │                       │                  │
+partition_A(sA)       partition_B(sB)     partition_C(gC)
+    │                       │                  │
+make_fragment_like    make_fragment_like   make_fragment_like
+    │                       │                  │
+copy(smem → reg)      copy(smem → reg)     clear(accum)
+    │                       │                  │
+    └───────────┬───────────┘                  │
+                │                              │
+        gemm(tiled_mma, fragA, fragB, accum)───┘
+                              │
+                     copy(accum → gC)
+</code></pre>
+<h2>3. The Solution (The Code)</h2>
+<p>Two kernels: first, an ownership map that shows which thread owns which C element (same technique as Tutorial 04). Second, the actual micro-GEMM: load A and B into shared memory, partition them for the MMA, execute one Tensor Core instruction, and write C back to global memory.</p>
+<pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
+#include &lt;cute/arch/mma_sm80.hpp&gt;
+#include &lt;cute/atom/mma_atom.hpp&gt;
+#include &lt;cute/algorithm/gemm.hpp&gt;
+
+#include &lt;cuda_fp16.h&gt;
+#include &lt;cstdio&gt;
+
+using namespace cute;
+
+// ─── Kernel 1: MMA Ownership Map ───
+// Which thread owns which elements of the C matrix?
+__global__ void mma_ownership_map()
+{
+    using MMA_Op = SM80_16x8x16_F32F16F16F32_TN;
+    auto tiled_mma = make_tiled_mma(MMA_Atom&lt;MMA_Op&gt;{});
+
+    // Shared memory to stamp thread IDs into C positions
+    __shared__ int smem_C[16 * 8];
+    auto sC_layout = make_layout(make_shape(Int&lt;16&gt;{}, Int&lt;8&gt;{}));
+    auto sC = make_tensor(make_smem_ptr(smem_C), sC_layout);
+
+    // Clear
+    for (int i = threadIdx.x; i &lt; 128; i += blockDim.x)
+        smem_C[i] = -1;
+    __syncthreads();
+
+    // Each thread stamps its ID into its owned C cells
+    auto thr_mma = tiled_mma.get_thread_slice(threadIdx.x);
+    auto tCsC = thr_mma.partition_C(sC);
+
+    for (int i = 0; i &lt; size(tCsC); ++i)
+        tCsC(i) = threadIdx.x;
+    __syncthreads();
+
+    // Thread 0 prints the map
+    if (threadIdx.x == 0) {
+        printf(&quot;MMA C Ownership Map (16x8) ;  SM80_16x8x16_F32F16F16F32_TN\n&quot;);
+        printf(&quot;Each thread holds 4 float accumulators.\n\n&quot;);
+
+        printf(&quot;       &quot;);
+        for (int n = 0; n &lt; 8; ++n) printf(&quot;n=%-4d&quot;, n);
+        printf(&quot;\n&quot;);
+
+        for (int m = 0; m &lt; 16; ++m) {
+            printf(&quot;m=%-4d &quot;, m);
+            for (int n = 0; n &lt; 8; ++n)
+                printf(&quot;T%02d   &quot;, sC(m, n));
+            printf(&quot;\n&quot;);
+        }
+    }
+}
+
+// ─── Kernel 2: Micro-GEMM ───
+// One warp computes C(16×8) += A(16×16) × B(8×16)^T using a single MMA instruction.
+__global__ void micro_gemm(half const* A_ptr, half const* B_ptr, float* C_ptr)
+{
+    using MMA_Op = SM80_16x8x16_F32F16F16F32_TN;
+    auto tiled_mma = make_tiled_mma(MMA_Atom&lt;MMA_Op&gt;{});
+
+    // ── Shared memory ──
+    __shared__ half smem_A[16 * 16];   // M × K
+    __shared__ half smem_B[8 * 16];    // N × K
+
+    // A layout: (M,K) = (16,16), K stride-1 (required by TN atom)
+    auto sA_layout = make_layout(make_shape(Int&lt;16&gt;{}, Int&lt;16&gt;{}),
+                                 make_stride(Int&lt;16&gt;{}, Int&lt;1&gt;{}));
+    // B layout: (N,K) = (8,16), K stride-1
+    auto sB_layout = make_layout(make_shape(Int&lt;8&gt;{}, Int&lt;16&gt;{}),
+                                 make_stride(Int&lt;16&gt;{}, Int&lt;1&gt;{}));
+    // C layout: (M,N) = (16,8), column-major
+    auto gC_layout = make_layout(make_shape(Int&lt;16&gt;{}, Int&lt;8&gt;{}));
+
+    auto sA = make_tensor(make_smem_ptr(smem_A), sA_layout);
+    auto sB = make_tensor(make_smem_ptr(smem_B), sB_layout);
+    auto gC = make_tensor(make_gmem_ptr(C_ptr),  gC_layout);
+
+    // ── 1. Load A, B from global to shared (simple loop ;  not TiledCopy) ──
+    auto gA = make_tensor(make_gmem_ptr(A_ptr), sA_layout);
+    auto gB = make_tensor(make_gmem_ptr(B_ptr), sB_layout);
+
+    for (int i = threadIdx.x; i &lt; size(sA); i += blockDim.x)
+        sA(i) = gA(i);
+    for (int i = threadIdx.x; i &lt; size(sB); i += blockDim.x)
+        sB(i) = gB(i);
+    __syncthreads();
+
+    // ── 2. Partition A, B, C for this thread ──
+    auto thr_mma = tiled_mma.get_thread_slice(threadIdx.x);
+
+    auto tCsA = thr_mma.partition_A(sA);    // (MMA, MMA_M, MMA_K) = (8, 1, 1)
+    auto tCsB = thr_mma.partition_B(sB);    // (MMA, MMA_N, MMA_K) = (4, 1, 1)
+    auto tCgC = thr_mma.partition_C(gC);    // (MMA, MMA_M, MMA_N) = (4, 1, 1)
+
+    // ── 3. Create register fragments ──
+    auto tCrA = make_fragment_like(tCsA);   // 8 half regs for A
+    auto tCrB = make_fragment_like(tCsB);   // 4 half regs for B
+    auto accum = make_fragment_like(tCgC);  // 4 float regs for C
+    clear(accum);
+
+    // ── 4. Copy A, B from shared memory to registers ──
+    copy(tCsA, tCrA);
+    copy(tCsB, tCrB);
+
+    // ── 5. Execute the MMA! ──
+    gemm(tiled_mma, tCrA, tCrB, accum);
+
+    // ── 6. Write result back to global memory ──
+    copy(accum, tCgC);
+}
+
+int main()
+{
+    constexpr int M = 16, N = 8, K = 16;
+
+    // ─── 1. Ownership Map ───
+    printf(&quot;=== MMA Ownership Map ===\n\n&quot;);
+    mma_ownership_map&lt;&lt;&lt;1, 32&gt;&gt;&gt;();
+    cudaDeviceSynchronize();
+
+    // ─── 2. Micro-GEMM ───
+    printf(&quot;\n=== Micro-GEMM: C(16x8) = A(16x16) * B(8x16)^T ===\n\n&quot;);
+
+    // Test data: A = all ones, B = all ones → C[m][n] = K = 16.0
+    half h_A[M * K], h_B[N * K];
+    float h_C[M * N] = {};
+
+    for (int i = 0; i &lt; M * K; ++i) h_A[i] = __float2half(1.0f);
+    for (int i = 0; i &lt; N * K; ++i) h_B[i] = __float2half(1.0f);
+
+    half *d_A, *d_B;
+    float *d_C;
+    cudaMalloc(&amp;d_A, M * K * sizeof(half));
+    cudaMalloc(&amp;d_B, N * K * sizeof(half));
+    cudaMalloc(&amp;d_C, M * N * sizeof(float));
+
+    cudaMemcpy(d_A, h_A, M * K * sizeof(half), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, h_B, N * K * sizeof(half), cudaMemcpyHostToDevice);
+
+    micro_gemm&lt;&lt;&lt;1, 32&gt;&gt;&gt;(d_A, d_B, d_C);
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(h_C, d_C, M * N * sizeof(float), cudaMemcpyDeviceToHost);
+
+    // C is column-major: element (m,n) is at offset m + M*n
+    printf(&quot;C (16x8) ;  each entry = K * 1.0 * 1.0 = 16.0:\n\n&quot;);
+    printf(&quot;       &quot;);
+    for (int n = 0; n &lt; N; ++n) printf(&quot;n=%-6d&quot;, n);
+    printf(&quot;\n&quot;);
+    for (int m = 0; m &lt; M; ++m) {
+        printf(&quot;m=%-4d &quot;, m);
+        for (int n = 0; n &lt; N; ++n)
+            printf(&quot;%-8.1f&quot;, h_C[m + M * n]);
+        printf(&quot;\n&quot;);
+    }
+
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    return 0;
+}
+</code></pre>
+<p><strong>Expected Output:</strong></p>
+<pre><code class="language-text">=== MMA Ownership Map ===
+
+MMA C Ownership Map (16x8) ;  SM80_16x8x16_F32F16F16F32_TN
+Each thread holds 4 float accumulators.
+
+       n=0   n=1   n=2   n=3   n=4   n=5   n=6   n=7
+m=0    T00   T00   T04   T04   T08   T08   T12   T12
+m=1    T01   T01   T05   T05   T09   T09   T13   T13
+m=2    T02   T02   T06   T06   T10   T10   T14   T14
+m=3    T03   T03   T07   T07   T11   T11   T15   T15
+m=4    T16   T16   T20   T20   T24   T24   T28   T28
+m=5    T17   T17   T21   T21   T25   T25   T29   T29
+m=6    T18   T18   T22   T22   T26   T26   T30   T30
+m=7    T19   T19   T23   T23   T27   T27   T31   T31
+m=8    T00   T00   T04   T04   T08   T08   T12   T12
+m=9    T01   T01   T05   T05   T09   T09   T13   T13
+m=10   T02   T02   T06   T06   T10   T10   T14   T14
+m=11   T03   T03   T07   T07   T11   T11   T15   T15
+m=12   T16   T16   T20   T20   T24   T24   T28   T28
+m=13   T17   T17   T21   T21   T25   T25   T29   T29
+m=14   T18   T18   T22   T22   T26   T26   T30   T30
+m=15   T19   T19   T23   T23   T27   T27   T31   T31
+
+=== Micro-GEMM: C(16x8) = A(16x16) * B(8x16)^T ===
+
+C (16x8) ;  each entry = K * 1.0 * 1.0 = 16.0:
+
+       n=0     n=1     n=2     n=3     n=4     n=5     n=6     n=7
+m=0    16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
+m=1    16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
+...
+m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
+</code></pre>
+<p>The ownership map reveals the hardware&#39;s register distribution: threads 0–3 and 16–19 alternate in 4-row blocks along M, and each thread owns pairs of adjacent columns. Thread T00 holds C[0][0], C[0][1], C[8][0], C[8][1] ;  four floats scattered across two 4-row blocks. You don&#39;t need to memorize this pattern; <code>partition_C</code> handles it automatically.</p>
+<p>The GEMM result is 16.0 everywhere: each entry is the dot product of a length-16 all-ones row from A with a length-16 all-ones row from B. One instruction, 2048 multiply-adds, 32 threads cooperating through their registers. (The instruction has 20+ cycles of latency, but it occupies only one issue slot ;  so pipelining multiple MMAs is how real kernels hide that cost.)</p>
+<h2>4. Step-by-Step Explanation</h2>
+<p><strong>Line: <code>using MMA_Op = SM80_16x8x16_F32F16F16F32_TN;</code></strong></p>
+<p>This names the PTX instruction we want: <code>mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32</code>. The naming convention:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Part</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>SM80</code></td>
+<td align="left">Ampere architecture (compute capability 8.0+)</td>
+</tr>
+<tr>
+<td align="left"><code>16x8x16</code></td>
+<td align="left">M × N × K ;  the tile dimensions of one MMA instruction</td>
+</tr>
+<tr>
+<td align="left"><code>F32F16F16F32</code></td>
+<td align="left">Types: D=float, A=half, B=half, C=float (D, A, B, C order)</td>
+</tr>
+<tr>
+<td align="left"><code>TN</code></td>
+<td align="left">A is K-major (Transposed), B is K-major (Normal)</td>
+</tr>
+</tbody></table>
+<p>The &quot;TN&quot; layout is the most common: both A and B have their K dimension as stride-1. This means your shared memory layouts for A(M,K) and B(N,K) should both have K as the fast-moving axis.</p>
+<p><strong>Line: <code>auto tiled_mma = make_tiled_mma(MMA_Atom&lt;MMA_Op&gt;{});</code></strong></p>
+<p>Wraps the raw hardware instruction in CuTe&#39;s <code>MMA_Atom</code>, then promotes it to a <code>TiledMMA</code>. With no extra tiling arguments, this creates the simplest possible MMA ;  one atom, one warp, no repetition. The tile size is exactly 16×8×16.</p>
+<p>Compare with Tutorial 04&#39;s <code>make_tiled_copy(Copy_Atom, thr_layout, val_layout)</code>. For MMA, the thread layout and value layout are determined by the hardware instruction itself ;  there&#39;s nothing to choose. The atom <em>is</em> the complete plan.</p>
+<p><strong>Lines: <code>sA_layout</code> with <code>make_stride(Int&lt;16&gt;{}, Int&lt;1&gt;{})</code></strong></p>
+<p>A is (M, K) = (16, 16) with K stride-1. This means <code>sA(m, k) = m * 16 + k * 1</code> ;  moving along K is contiguous in memory. The TN atom requires this: the PTX instruction&#39;s &quot;row&quot; descriptor for A means K is the fast index.</p>
+<p>If you accidentally used column-major (M stride-1, K stride-16), the MMA would read the wrong values ;  you&#39;d be feeding columns of A where it expects rows.</p>
+<p><strong>Lines: <code>sB_layout</code> with <code>make_stride(Int&lt;16&gt;{}, Int&lt;1&gt;{})</code></strong></p>
+<p>B is (N, K) = (8, 16), also K stride-1. Same reason: the TN atom&#39;s &quot;col&quot; descriptor for B also means K is the fast index. Both A and B want K contiguous.</p>
+<blockquote>
+<p>This is why &quot;TN&quot; is popular: when A and B are both K-major, your global memory loads can be coalesced along the K dimension. You&#39;ll see this pattern again in Tutorial 07&#39;s full GEMM.</p>
+</blockquote>
+<p><strong>Line: <code>auto tCsA = thr_mma.partition_A(sA);  // (MMA, MMA_M, MMA_K) = (8, 1, 1)</code></strong></p>
+<p><code>partition_A</code> asks: &quot;Given the full shared memory tensor <code>sA</code> and the MMA&#39;s register layout, which elements belong to this thread?&quot; It returns a 3-mode tensor:</p>
+<ul>
+<li><strong>Mode 0 (MMA):</strong> The 8 half values this thread feeds into one atom invocation.</li>
+<li><strong>Mode 1 (MMA_M):</strong> How many times the atom repeats along M. Our A has M=16 and the atom handles M=16, so 1 repetition.</li>
+<li><strong>Mode 2 (MMA_K):</strong> How many times the atom repeats along K. Our K=16 matches the atom&#39;s K=16, so 1 repetition.</li>
+</ul>
+<p>Compare with Tutorial 04: <code>partition_S</code> returned <code>(ValuesPerAtom, Reps...)</code>. Same idea, different dimension names.</p>
+<p><strong>Line: <code>auto tCrA = make_fragment_like(tCsA);</code></strong></p>
+<p>Creates a register tensor with the same shape as the smem partition: <code>(8, 1, 1)</code> of half-precision values. These 8 registers are this thread&#39;s personal tray ;  the slot in the stamping press that it&#39;s responsible for loading.</p>
+<p><strong>Line: <code>copy(tCsA, tCrA);</code></strong></p>
+<p>Copies this thread&#39;s 8 half values from shared memory to registers. Each thread reads from different smem addresses (determined by <code>partition_A</code>), so there&#39;s no conflict. After this line, all 32 threads have their A fragments loaded and ready.</p>
+<p><strong>Line: <code>gemm(tiled_mma, tCrA, tCrB, accum);</code></strong></p>
+<p>This is the magic line. <code>gemm()</code> dispatches the PTX <code>mma.sync</code> instruction, which:</p>
+<ol>
+<li>Reads A fragments from all 32 threads&#39; registers (8 halfs each = 256 total = 16×16 matrix).</li>
+<li>Reads B fragments from all 32 threads&#39; registers (4 halfs each = 128 total = 8×16 matrix).</li>
+<li>Multiplies the 16×16 matrix by the 8×16 matrix (as C += A × B^T).</li>
+<li>Accumulates the 16×8 result into all 32 threads&#39; C registers (4 floats each = 128 total).</li>
+</ol>
+<p>This is a single instruction, but <strong>not</strong> a single clock cycle ;  the MMA has a latency of 20+ cycles. However, it only occupies one issue slot, so the warp scheduler can issue other independent instructions (or another MMA from a different warp) while the Tensor Core is still working. Real GEMM kernels pipeline multiple MMAs to hide this latency. The <code>.sync</code> in the PTX name means all threads in the warp participate simultaneously ;  this is a collective operation, not a per-thread one.</p>
+<p><strong>Line: <code>copy(accum, tCgC);</code></strong></p>
+<p>Copies the 4 float accumulator values from registers to their corresponding positions in global memory C. Each thread writes to different addresses (determined by <code>partition_C</code>), so no conflicts. The host then reads back the complete 16×8 result.</p>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy:</strong> <code>MMA_Atom</code> is a <strong>stamping press</strong> ;  a fixed-size hardware machine that takes raw-material trays (A and B register fragments), processes them all at once, and stamps out a product (C accumulator). Each worker (thread) loads their assigned tray slot. <code>TiledMMA</code> is the factory floor plan that coordinates the workers. <code>gemm()</code> is pressing the button.</p>
+<p>This analogy extends the Tutorial 03–04 warehouse metaphor: data arrives from the truck (global memory) via the loading dock (TiledCopy + smem), and now the stamping press (TiledMMA) processes it in the factory. The same workers (threads) do both jobs ;  they just switch from mover role to machine-operator role.</p>
+<p><strong>Fragment size formula:</strong></p>
+<p>For any MMA atom with shape M×N×K using W threads:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Fragment</th>
+<th align="left">Per-thread values</th>
+<th align="left">Total</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">A</td>
+<td align="left">M × K / W</td>
+<td align="left">M × K</td>
+</tr>
+<tr>
+<td align="left">B</td>
+<td align="left">N × K / W</td>
+<td align="left">N × K</td>
+</tr>
+<tr>
+<td align="left">C</td>
+<td align="left">M × N / W</td>
+<td align="left">M × N</td>
+</tr>
+</tbody></table>
+<p>For SM80_16x8x16 with W=32: A = 8 halfs, B = 4 halfs, C = 4 floats.</p>
+<p><strong>What &quot;TN&quot; means for your layouts:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">Layout</th>
+<th align="left">A (M, K)</th>
+<th align="left">B (N, K)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>TN</strong></td>
+<td align="left">K stride-1 <code>(K, 1)</code></td>
+<td align="left">K stride-1 <code>(K, 1)</code></td>
+</tr>
+<tr>
+<td align="left">TT</td>
+<td align="left">K stride-1 <code>(K, 1)</code></td>
+<td align="left">N stride-1 <code>(1, N)</code></td>
+</tr>
+<tr>
+<td align="left">NN</td>
+<td align="left">M stride-1 <code>(1, M)</code></td>
+<td align="left">N stride-1 <code>(1, N)</code></td>
+</tr>
+<tr>
+<td align="left">NT</td>
+<td align="left">M stride-1 <code>(1, M)</code></td>
+<td align="left">K stride-1 <code>(K, 1)</code></td>
+</tr>
+</tbody></table>
+<p>TN is the most common because both A and B have K contiguous ;  global memory loads along the K-reduction dimension are coalesced.</p>
+<p><strong>The ownership map tells you something important:</strong></p>
+<p>Thread T00 owns C[0][0], C[0][1], C[8][0], C[8][1]. These four values are <em>not</em> contiguous in column-major memory (offsets 0, 16, 8, 24). This means writing the C accumulator to global memory via <code>copy(accum, tCgC)</code> produces scattered stores ;  each thread writes 4 separate floats to non-contiguous addresses. For a real GEMM kernel (Tutorial 07), the epilogue stage would use a TiledCopy to reorganize the writes through shared memory for coalesced global stores.</p>
+<p><strong>Hardware note ;  checking your GPU:</strong></p>
+<p>The SM80 MMA atom requires compute capability 8.0 or higher (A100, RTX 3090, etc.). To check:</p>
+<pre><code class="language-bash">nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+# Should print 8.0 or higher
+</code></pre>
+<p><strong>Hardware note ;  latency vs. throughput:</strong></p>
+<p>A single <code>mma.sync.m16n8k16</code> has a <strong>latency</strong> of 20+ clock cycles ;  the result isn&#39;t ready to read for that long. But the <strong>maximum issue frequency</strong> (throughput) is much higher than one-per-20-cycles, because the Tensor Core is pipelined. The exact throughput depends on the GPU architecture:</p>
+<table>
+<thead>
+<tr>
+<th align="left">GPU</th>
+<th align="left">Max issue frequency (per SM partition)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">A100 (SM80)</td>
+<td align="left">1 MMA per 8 cycles</td>
+</tr>
+<tr>
+<td align="left">Consumer Ampere (e.g. RTX 3090)</td>
+<td align="left">1 MMA per 16 cycles</td>
+</tr>
+<tr>
+<td align="left">Some other consumer GPUs</td>
+<td align="left">1 MMA per 32 cycles</td>
+</tr>
+</tbody></table>
+<p>On A100, each SM has 4 partitions (sub-partitions / warp schedulers), so the SM-wide throughput is one MMA per 2 cycles, or 2048 FMAs every 2 cycles. Multiply by 108 SMs and a 1.41 GHz clock and you get the advertised Tensor Core TFLOPS ;  but only if the data pipeline (Tutorials 03–05) keeps the Tensor Cores fed and you have enough independent MMAs in flight to hide the 20+ cycle latency.</p>
+<blockquote>
+<p><strong>Gotcha ;  layout mismatch:</strong> If your smem layout doesn&#39;t match the TN convention (K stride-1), the MMA will read the wrong elements. The symptom is silently wrong results, not a crash. Always double-check that your A and B shared memory strides put K as stride-1 for TN atoms.</p>
+</blockquote>
+<blockquote>
+<p><strong>Gotcha ;  half precision:</strong> The input matrices <em>must</em> be <code>half</code> (F16). If you accidentally store <code>float</code> values in smem and cast the pointer to <code>half*</code>, you&#39;ll get garbage. Use <code>__float2half()</code> to convert before storing.</p>
+</blockquote>
+<p><strong>What comes next:</strong> This tutorial computed a single 16×8 tile using one MMA instruction. But real matrices are much larger than 16×8. Tutorial 07 (The Global GEMM) shows how to tile over M, N, and K ;  looping the MMA across tiles, piping data from global memory through shared memory into the Tensor Core in a continuous stream.</p>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +678,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `06_hello_mma`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

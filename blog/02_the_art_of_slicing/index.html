@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Art of Slicing ; Partitioning Data Across Blocks and Threads — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/02_the_art_of_slicing/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="The Art of Slicing ; Partitioning Data Across Blocks and Threads">
+    <meta property="og:description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/02_the_art_of_slicing/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2025-06-20">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="The Art of Slicing ; Partitioning Data Across Blocks and Threads">
+    <meta name="twitter:description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The Art of Slicing ; Partitioning Data Across Blocks and Threads",
+  "description": "How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.",
+  "datePublished": "2025-06-20",
+  "dateModified": "2025-06-20",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/02_the_art_of_slicing/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 1505,
+  "timeRequired": "PT8M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,274 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2025-06-20" itemprop="datePublished">June 20, 2025</time>
+                    <span class="blog-readtime">&middot; 8 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>The Art of Slicing ;  Partitioning Data Across Blocks and Threads</h1>
+<p><strong>Difficulty:</strong> Beginner
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, CUDA thread blocks (<code>blockIdx</code>, <code>threadIdx</code>)</p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>You have a big matrix ;  say 512×512 ;  sitting in global memory. Your GPU launches a grid of thread blocks, each of which should work on a small tile (e.g., 128×128). Inside each block, 256 threads need to split <em>that</em> tile further so every thread handles its own little piece.</p>
+<p>Without CuTe, you write something like:</p>
+<pre><code class="language-cpp">int row_start = blockIdx.x * TILE_M;
+int col_start = blockIdx.y * TILE_N;
+int thr_row   = threadIdx.x % THR_M;
+int thr_col   = threadIdx.x / THR_M;
+// ... and then more math for every matrix, every stage, every layout change
+</code></pre>
+<p>This is fragile. Change the tile size? Rewrite the math. Transpose a matrix? Rewrite it again. Add a K-dimension for GEMM? Rewrite it <em>again</em>.</p>
+<p>CuTe replaces all of this with two composable operations:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Operation</th>
+<th align="left">Level</th>
+<th align="left">What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>local_tile</code></td>
+<td align="left">Block (CTA)</td>
+<td align="left">&quot;Give this block its tile from the big matrix.&quot;</td>
+</tr>
+<tr>
+<td align="left"><code>local_partition</code></td>
+<td align="left">Thread</td>
+<td align="left">&quot;Give this thread its elements from the tile.&quot;</td>
+</tr>
+</tbody></table>
+<p>Both work on any shape, any stride, any number of dimensions.</p>
+<blockquote>
+<p><strong>B200 Note:</strong> When you program the TMA engine on Hopper/Blackwell, you still need <code>local_tile</code> to select <em>which</em> tile the TMA should fetch. The TMA descriptor handles the copy, but you tell it <em>where</em> to point using the exact same tiling logic described here.</p>
+</blockquote>
+<h2>2. The Mental Model (The Visual)</h2>
+<h3>Step 1: The Big Picture ;  Tiling for CTAs</h3>
+<p>Imagine an 8×8 matrix divided into 4×4 tiles. Four thread blocks share the work:</p>
+<pre><code class="language-text">                       Global Matrix (8×8)
+         col 0  col 1  col 2  col 3  col 4  col 5  col 6  col 7
+       ┌───────────────────────────┬───────────────────────────┐
+row 0  │                           │                           │
+row 1  │      Block (0,0)          │      Block (0,1)          │
+row 2  │      rows 0-3, cols 0-3   │      rows 0-3, cols 4-7   │
+row 3  │                           │                           │
+       ├───────────────────────────┼───────────────────────────┤
+row 4  │                           │                           │
+row 5  │      Block (1,0)          │      Block (1,1)          │
+row 6  │      rows 4-7, cols 0-3   │      rows 4-7, cols 4-7   │
+row 7  │                           │                           │
+       └───────────────────────────┴───────────────────────────┘
+
+  local_tile(matrix, Shape&lt;4,4&gt;{}, make_coord(blockIdx.x, blockIdx.y))
+  → extracts one 4×4 tile for each block
+</code></pre>
+<p><code>local_tile</code> applies a <strong>tiler</strong> (here <code>Shape&lt;4,4&gt;</code>) to produce tiles, then uses the block coordinate to pick the right one. Under the hood it calls <code>zipped_divide</code>, which reshapes the matrix into <code>((Tile), (Rest))</code> ;  tile elements in the first mode, tile indices in the second ;  then slices the rest-mode with your coordinate.</p>
+<h3>Step 2: Inside a Tile ;  Partitioning for Threads</h3>
+<p>Now zoom into Block (0,0)&#39;s 4×4 tile. We have 4 threads arranged as a 2×2 layout. Each thread gets a 2×2 chunk:</p>
+<pre><code class="language-text">            Block (0,0)&#39;s Tile (4×4)
+
+         col 0   col 1   col 2   col 3
+       ┌─────────────────┬─────────────────┐
+row 0  │  T0      T0     │  T1      T1     │
+row 1  │  T0      T0     │  T1      T1     │
+       ├─────────────────┼─────────────────┤
+row 2  │  T2      T2     │  T3      T3     │
+row 3  │  T2      T2     │  T3      T3     │
+       └─────────────────┴─────────────────┘
+
+  Thread layout: (2,2):(1,2)  →  4 threads in column-major
+  Tile shape:    (4,4)
+  Each thread:   (4/2, 4/2) = (2,2) elements
+
+  local_partition(tile, Layout&lt;Shape&lt;2,2&gt;&gt;{}, threadIdx.x)
+  → Thread 0 gets the top-left 2×2 subtensor
+</code></pre>
+<p><code>local_partition</code> takes a <strong>thread layout</strong> ;  a Layout that maps coordinates to thread indices ;  and uses <code>zipped_divide</code> to split the tile into thread-sized pieces, then slices into the tile-mode with the thread&#39;s <em>coordinate</em> (derived from its flat index via the thread layout).</p>
+<blockquote>
+<p><strong>Key Insight:</strong> <code>local_tile</code> slices the <strong>rest</strong> (picks which tile). <code>local_partition</code> slices the <strong>tile</strong> (picks which thread&#39;s elements). They are two sides of the same <code>zipped_divide</code> coin.</p>
+</blockquote>
+<h2>3. The Solution (The Code)</h2>
+<p>A CUDA kernel that tiles a matrix across blocks, partitions each tile across threads, and prints what each agent owns.</p>
+<pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
+
+using namespace cute;
+
+template &lt;class Shape_MN, class CtaTiler, class ThreadLayout&gt;
+__global__ void partition_kernel(Shape_MN shape_mn,
+                                 CtaTiler cta_tiler,
+                                 ThreadLayout thr_layout)
+{
+    // 1. Build the full matrix as a counting tensor (value at (i,j) = flat index)
+    //    In real code this would be make_tensor(make_gmem_ptr(ptr), shape, stride)
+    auto matrix = make_counting_tensor(make_layout(shape_mn));          // (M,N)
+
+    // 2. CTA-level: each block picks its tile
+    auto cta_coord = make_coord(blockIdx.x, blockIdx.y);
+    auto cta_tile  = local_tile(matrix, cta_tiler, cta_coord);         // (BLK_M,BLK_N)
+
+    // 3. Thread-level: each thread picks its elements from the tile
+    auto thr_tile  = local_partition(cta_tile, thr_layout, threadIdx.x); // (THR_M,THR_N)
+
+    // 4. Print from Block (0,0), Thread 0 only
+    if (blockIdx.x == 0 &amp;&amp; blockIdx.y == 0 &amp;&amp; threadIdx.x == 0) {
+        printf(&quot;=== Full matrix layout ===\n&quot;);
+        print(matrix.layout()); printf(&quot;\n\n&quot;);
+
+        printf(&quot;=== Block (0,0) tile ===\n&quot;);
+        print(cta_tile.layout()); printf(&quot;\n&quot;);
+        for (int m = 0; m &lt; size&lt;0&gt;(cta_tile); ++m) {
+            for (int n = 0; n &lt; size&lt;1&gt;(cta_tile); ++n) {
+                printf(&quot;%3d &quot;, int(cta_tile(m, n)));
+            }
+            printf(&quot;\n&quot;);
+        }
+
+        printf(&quot;\n=== Block (0,0), Thread 0 partition ===\n&quot;);
+        print(thr_tile.layout()); printf(&quot;\n&quot;);
+        printf(&quot;Thread 0 owns elements: &quot;);
+        for (int i = 0; i &lt; size(thr_tile); ++i) {
+            printf(&quot;%d &quot;, int(thr_tile(i)));
+        }
+        printf(&quot;\n&quot;);
+    }
+}
+
+int main()
+{
+    // 8×8 matrix, tiled into 4×4 blocks, 4 threads per block (2×2)
+    auto shape_mn   = make_shape(Int&lt;8&gt;{}, Int&lt;8&gt;{});
+    auto cta_tiler  = make_shape(Int&lt;4&gt;{}, Int&lt;4&gt;{});
+    auto thr_layout = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;2&gt;{}));     // (m,n)-&gt;thr_idx
+
+    dim3 grid(size(ceil_div(get&lt;0&gt;(shape_mn), get&lt;0&gt;(cta_tiler))),
+              size(ceil_div(get&lt;1&gt;(shape_mn), get&lt;1&gt;(cta_tiler))));    // 2×2 blocks
+    dim3 block(size(thr_layout));                                      // 4 threads
+
+    partition_kernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(shape_mn, cta_tiler, thr_layout);
+    cudaDeviceSynchronize();
+    return 0;
+}
+</code></pre>
+<p><strong>Expected Output:</strong></p>
+<pre><code class="language-text">=== Full matrix layout ===
+(_8,_8):(_1,_8)
+
+=== Block (0,0) tile ===
+(_4,_4):(_1,_8)
+  0   8  16  24
+  1   9  17  25
+  2  10  18  26
+  3  11  19  27
+
+=== Block (0,0), Thread 0 partition ===
+(_2,_2):(_1,_8)
+Thread 0 owns elements: 0 1 8 9
+</code></pre>
+<p>Block (0,0) gets the top-left 4×4 tile (addresses 0–3 down column 0, 8–11 down column 1, etc. ;  column-major). Thread 0 gets the top-left 2×2 corner of that tile.</p>
+<h2>4. Step-by-Step Explanation</h2>
+<p><strong>Line: <code>auto matrix = make_counting_tensor(make_layout(shape_mn));</code></strong></p>
+<ul>
+<li><code>make_counting_tensor</code> creates a &quot;virtual&quot; tensor where the value at each coordinate equals its flat index. No actual memory ;  it&#39;s a trick for visualizing the Layout&#39;s mapping. In a real kernel, replace this with <code>make_tensor(make_gmem_ptr(ptr), shape, stride)</code>.</li>
+</ul>
+<p><strong>Line: <code>auto cta_tile = local_tile(matrix, cta_tiler, cta_coord);</code></strong></p>
+<ul>
+<li><code>local_tile</code> is CuTe&#39;s <strong>inner partition</strong>. Under the hood:<ol>
+<li><code>zipped_divide(matrix, cta_tiler)</code> reshapes the <code>(8,8)</code> matrix into <code>((4,4),(2,2))</code> ;  a 4×4 tile mode and a 2×2 &quot;rest&quot; mode (2 tiles per row, 2 tiles per column).</li>
+<li>The <code>cta_coord</code> slices the rest-mode: <code>(blockIdx.x, blockIdx.y)</code> picks one tile.</li>
+</ol>
+</li>
+<li>Block (0,0) gets the tile at rest-coordinate (0,0) ;  the top-left 4×4 region.</li>
+</ul>
+<p><strong>Line: <code>auto thr_tile = local_partition(cta_tile, thr_layout, threadIdx.x);</code></strong></p>
+<ul>
+<li><code>local_partition</code> is CuTe&#39;s <strong>outer partition</strong>. Under the hood:<ol>
+<li>It takes the <em>shape</em> of <code>thr_layout</code> ;  here <code>(2,2)</code> ;  and uses it as a tiler on the <code>(4,4)</code> tile, producing <code>((2,2),(2,2))</code> ;  2×2 elements per thread, tiled over 2×2 threads.</li>
+<li>It converts <code>threadIdx.x</code> into a coordinate using <code>thr_layout</code>. Thread 0 → coord <code>(0,0)</code>, Thread 1 → <code>(1,0)</code>, Thread 2 → <code>(0,1)</code>, Thread 3 → <code>(1,1)</code>.</li>
+<li>That coordinate slices the tile-mode, so each thread gets the matching 2×2 block of elements.</li>
+</ol>
+</li>
+</ul>
+<p><strong>Line: <code>ceil_div(get&lt;0&gt;(shape_mn), get&lt;0&gt;(cta_tiler))</code></strong></p>
+<ul>
+<li><code>ceil_div(8, 4) = 2</code>. This gives us 2 blocks in the M-dimension (and 2 in N), for a total of 4 blocks.</li>
+</ul>
+<p><strong><code>cosize</code> (used in real kernels for shared memory):</strong></p>
+<ul>
+<li><code>cosize(layout)</code> returns the size of the layout&#39;s codomain ;  the number of unique addresses needed. Use it to allocate shared memory: <code>__shared__ float smem[cosize_v&lt;SmemLayout&gt;];</code>.</li>
+</ul>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy:</strong> Think of partitioning as <strong>dealing cards at a poker table</strong>:</p>
+<ol>
+<li><strong><code>local_tile</code></strong> = The casino floor manager assigns a <em>table</em> (tile) to each <em>dealer</em> (CTA). &quot;Table 0, you get the top-left quarter of the deck.&quot;</li>
+<li><strong><code>local_partition</code></strong> = The dealer at each table divides the cards among the <em>players</em> (threads). &quot;Player 0, you get these 4 cards.&quot;</li>
+<li><strong><code>zipped_divide</code></strong> = The reorganization step that makes dealing possible. It splits the deck into <code>((hand), (tables))</code> so you can ask for any specific table&#39;s hand in one shot.</li>
+</ol>
+<p>The key invariant: <strong>every element is owned by exactly one block and exactly one thread within that block.</strong> No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the <a href="/blog/0y_predication/">predication tutorial</a> for handling remainders).</p>
+<p><strong>Hardware Note:</strong> On Hopper/B200, the tile coordinate you compute with <code>local_tile</code> is the <em>same</em> coordinate you pass to <code>cute::copy</code> with a TMA atom. The TMA engine uses the descriptor&#39;s shape/stride (from Tutorial 01) and this coordinate to DMA the right tile into shared memory ;  zero address math in registers.</p>
+<p><strong>The <code>local_tile</code> / <code>local_partition</code> Cheat-Sheet:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">Function</th>
+<th align="left">Level</th>
+<th align="left">Slices into...</th>
+<th align="left">You provide...</th>
+<th align="left">You get...</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>local_tile</code></td>
+<td align="left">CTA</td>
+<td align="left">Rest (which tile)</td>
+<td align="left">Tile shape + block coord</td>
+<td align="left">The tile data</td>
+</tr>
+<tr>
+<td align="left"><code>local_partition</code></td>
+<td align="left">Thread</td>
+<td align="left">Tile (which thread)</td>
+<td align="left">Thread layout + thread idx</td>
+<td align="left">That thread&#39;s elements</td>
+</tr>
+</tbody></table>
+<p><strong>Under the hood ;  both use <code>zipped_divide</code>:</strong></p>
+<pre><code class="language-text">zipped_divide(data, tiler)  →  ((Tile), (Rest))
+                                  │         │
+                         local_partition  local_tile
+                         slices here      slices here
+</code></pre>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +462,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `02_the_art_of_slicing`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

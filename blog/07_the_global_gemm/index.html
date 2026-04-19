@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Global GEMM ;  Putting It All Together — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/07_the_global_gemm/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="The Global GEMM ;  Putting It All Together">
+    <meta property="og:description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/07_the_global_gemm/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-03-07">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="The Global GEMM ;  Putting It All Together">
+    <meta name="twitter:description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The Global GEMM — Putting It All Together",
+  "description": "Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.",
+  "datePublished": "2026-03-07",
+  "dateModified": "2026-03-07",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/07_the_global_gemm/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 3296,
+  "timeRequired": "PT17M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,548 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-03-07" itemprop="datePublished">March 7, 2026</time>
+                    <span class="blog-readtime">&middot; 17 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>The Global GEMM ;  Putting It All Together</h1>
+<p><strong>Difficulty:</strong> Intermediate–Advanced
+<strong>Prerequisites:</strong> <a href="/blog/02_the_art_of_slicing/">Tutorial 02: Partitioning</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: TiledCopy</a>, <a href="/blog/05_swizzling/">Tutorial 05: Swizzling</a>, <a href="/blog/06_hello_mma/">Tutorial 06: Hello, MMA</a></p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>Tutorial 06 triggered a single Tensor Core instruction on a 16×8×16 (M×N×K) micro-tile. That&#39;s 2048 multiply-adds ;  impressive for one instruction, but real-world matrices are thousands of elements wide. You need to compute C(M×N) = A(M×K) × Bᵀ(N×K) where M, N, and K can each be 4096 or more.</p>
+<p>The answer isn&#39;t one giant instruction. It&#39;s <strong>tiling</strong> ;  the same idea from Tutorial 02, now applied at every level:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Level</th>
+<th align="left">What&#39;s tiled</th>
+<th align="left">Controlled by</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>CTA grid</strong></td>
+<td align="left">Output C is divided into BLK_M×BLK_N tiles, one per thread block</td>
+<td align="left"><code>local_tile</code> + <code>blockIdx</code></td>
+</tr>
+<tr>
+<td align="left"><strong>K-loop</strong></td>
+<td align="left">The reduction dimension K is divided into BLK_K chunks, processed sequentially</td>
+<td align="left">The mainloop <code>for</code> loop</td>
+</tr>
+<tr>
+<td align="left"><strong>Warp MMA</strong></td>
+<td align="left">Each BLK_M×BLK_N tile is further divided by the <code>TiledMMA</code> across 4 warps</td>
+<td align="left"><code>partition_A/B/C</code> + <code>gemm()</code></td>
+</tr>
+</tbody></table>
+<p>This is the structure of every high-performance GEMM on GPUs ;  from CUTLASS to cuBLAS. The names change but the three-level tiling is always the same. This tutorial writes that kernel from scratch, using nothing but the CuTe primitives you already know.</p>
+<blockquote>
+<p><strong>B200 Note:</strong> On Hopper/Blackwell, the structure is identical but the data-movement layer changes: TiledCopy with <code>cp.async</code> or TMA replaces explicit loads, and the K-loop becomes a software pipeline (Tutorial 10). The compute layer (<code>TiledMMA</code> + <code>gemm()</code>) stays the same.</p>
+</blockquote>
+<h2>2. The Mental Model (The Visual)</h2>
+<h3>Running the Factory for a Full Production Day</h3>
+<p>Tutorials 03–06 built the factory:</p>
+<ul>
+<li><strong>Loading dock</strong> (TiledCopy) ;  moves raw materials from the truck (global memory) into the warehouse (shared memory), using dollies (vectorized loads) and staggered shelving (swizzle).</li>
+<li><strong>Stamping press</strong> (TiledMMA) ;  processes materials from the warehouse shelves into finished products (C accumulator).</li>
+</ul>
+<p>Now we run the factory for a full <strong>production day</strong>:</p>
+<pre><code class="language-text">                    Global Memory (The Truck)
+    ┌────────────────────────────────────────────────┐
+    │  A (M × K)                  B (N × K)          │
+    └──────────┬─────────────────────┬───────────────┘
+               │                     │
+    ═══════════╪═════════════════════╪══════ K-loop (the shift) ════
+    ║          ▼                     ▼                             ║
+    ║   ┌─────────────┐      ┌─────────────┐                      ║
+    ║   │ A tile      │      │ B tile      │  ← TiledCopy         ║
+    ║   │ (128 × 32)  │      │ (128 × 32)  │    gmem → smem       ║
+    ║   └──────┬──────┘      └──────┬──────┘                      ║
+    ║          │    Shared Memory    │                              ║
+    ║          ▼    (swizzled)       ▼                              ║
+    ║   ┌─────────────────────────────────┐                        ║
+    ║   │         STAMPING PRESS          │  ← TiledMMA            ║
+    ║   │    partition → fragment → gemm  │    smem → regs → MMA   ║
+    ║   └────────────────┬────────────────┘                        ║
+    ║                    │                                          ║
+    ║              accum += partial C                               ║
+    ║                                                              ║
+    ═══════════════════════════════════════ repeat for each K tile ══
+
+                    │
+                    ▼  Epilogue (end of shift ;  ship the product)
+             ┌──────────┐
+             │  C tile   │  ← copy accum → gmem
+             │ (128×128) │
+             └──────────┘
+</code></pre>
+<p>Each thread block is an independent factory. The grid of blocks tiles the M×N output:</p>
+<pre><code class="language-text">Grid of CTAs over the output C (M × N):
+
+         N →
+    ┌─────────┬─────────┬─────────┬───┐
+    │ CTA     │ CTA     │ CTA     │   │
+  M │ (0,0)   │ (0,1)   │ (0,2)   │...│  Each CTA computes
+  ↓ │ 128×128 │ 128×128 │ 128×128 │   │  one 128×128 tile of C
+    ├─────────┼─────────┼─────────┼───┤
+    │ CTA     │ CTA     │ CTA     │   │
+    │ (1,0)   │ (1,1)   │ (1,2)   │...│
+    │ 128×128 │ 128×128 │ 128×128 │   │
+    ├─────────┼─────────┼─────────┼───┤
+    │  ...    │  ...    │  ...    │   │
+    └─────────┴─────────┴─────────┴───┘
+
+grid = (M / 128, N / 128)
+</code></pre>
+<h3>The Three Phases</h3>
+<pre><code class="language-text">Phase 1: COPY (the loading dock)
+  gmem A[BLK_M × BLK_K] ──TiledCopy──▶ smem_A (swizzled)
+  gmem B[BLK_N × BLK_K] ──TiledCopy──▶ smem_B (swizzled)
+  __syncthreads()
+
+Phase 2: COMPUTE (the stamping press)
+  smem_A ──partition_A──▶ registers ──┐
+                                      ├──gemm()──▶ accum += partial
+  smem_B ──partition_B──▶ registers ──┘
+  __syncthreads()
+
+Phase 3: EPILOGUE (shipping)
+  accum ──partition_C──▶ gmem C[BLK_M × BLK_N]
+</code></pre>
+<p>Phases 1 and 2 repeat <code>ceil(K / BLK_K)</code> times. Phase 3 happens once.</p>
+<h2>3. The Solution (The Code)</h2>
+<p>A complete GEMM kernel: <code>C (M×N, float) += A (M×K, half) × B^T (N×K, half)</code>. Uses 128 threads (4 warps), 128×128 CTA tiles, and SM80 Tensor Cores.</p>
+<p><strong>Constraints:</strong> M and N must be multiples of 128; K must be a multiple of 32. (Removing these constraints requires boundary masking ;  important for production, orthogonal to the core GEMM structure.)</p>
+<pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
+#include &lt;cute/arch/mma_sm80.hpp&gt;
+#include &lt;cute/atom/mma_atom.hpp&gt;
+#include &lt;cute/atom/copy_atom.hpp&gt;
+#include &lt;cute/algorithm/gemm.hpp&gt;
+#include &lt;cute/swizzle.hpp&gt;
+
+#include &lt;cuda_fp16.h&gt;
+#include &lt;cstdio&gt;
+#include &lt;cstdlib&gt;
+#include &lt;cmath&gt;
+
+using namespace cute;
+
+// Tile sizes
+constexpr int BLK_M = 128;
+constexpr int BLK_N = 128;
+constexpr int BLK_K = 32;
+constexpr int NUM_THREADS = 128;  // 4 warps
+
+__global__ void gemm_kernel(
+    half const* __restrict__ A_ptr,
+    half const* __restrict__ B_ptr,
+    float*      __restrict__ C_ptr,
+    int M, int N, int K)
+{
+    // SETUP: Layouts, TiledCopy, TiledMMA
+
+    // Global memory tensors
+    // A: (M, K) with K stride-1   B: (N, K) with K stride-1
+    // C: (M, N) with N stride-1
+    auto mA = make_tensor(make_gmem_ptr(A_ptr), make_shape(M, K), make_stride(K, Int&lt;1&gt;{}));
+    auto mB = make_tensor(make_gmem_ptr(B_ptr), make_shape(N, K), make_stride(K, Int&lt;1&gt;{}));
+    auto mC = make_tensor(make_gmem_ptr(C_ptr), make_shape(M, N), make_stride(N, Int&lt;1&gt;{}));
+
+    // CTA tiling: each block claims its tile of A, B, C
+    auto cta_coord = make_coord(blockIdx.x, blockIdx.y);
+
+    // gA: (BLK_M, BLK_K, k_tiles) ;  this block&#39;s strip of A, sliced along K
+    auto gA = local_tile(mA, make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                          make_coord(get&lt;0&gt;(cta_coord), _));
+    // gB: (BLK_N, BLK_K, k_tiles)
+    auto gB = local_tile(mB, make_shape(Int&lt;BLK_N&gt;{}, Int&lt;BLK_K&gt;{}),
+                          make_coord(get&lt;1&gt;(cta_coord), _));
+    // gC: (BLK_M, BLK_N) ;  this block&#39;s output tile
+    auto gC = local_tile(mC, make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_N&gt;{}), cta_coord);
+
+    // Shared memory layouts: K stride-1, swizzled
+    // Swizzle&lt;3,3,3&gt;: M=3 → 8 halfs (128 bits) stay contiguous for vectorized loads
+    auto sA_layout = composition(Swizzle&lt;3, 3, 3&gt;{},
+        make_layout(make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                    make_stride(Int&lt;BLK_K&gt;{}, Int&lt;1&gt;{})));
+    auto sB_layout = composition(Swizzle&lt;3, 3, 3&gt;{},
+        make_layout(make_shape(Int&lt;BLK_N&gt;{}, Int&lt;BLK_K&gt;{}),
+                    make_stride(Int&lt;BLK_K&gt;{}, Int&lt;1&gt;{})));
+
+    // Shared memory allocation (static)
+    __shared__ half smem_A[cosize_v&lt;decltype(sA_layout)&gt;];
+    __shared__ half smem_B[cosize_v&lt;decltype(sB_layout)&gt;];
+
+    auto sA = make_tensor(make_smem_ptr(smem_A), sA_layout);
+    auto sB = make_tensor(make_smem_ptr(smem_B), sB_layout);
+
+    // TiledCopy: gmem → smem via cp.async
+    // Each atom loads 128 bits = 8 halfs along the K (stride-1) direction.
+    // 128 threads, one per M-row. Each thread loads 32 K-values (4 × 128-bit async copies).
+    auto tiled_copy = make_tiled_copy(
+        Copy_Atom&lt;SM80_CP_ASYNC_CACHEALWAYS&lt;uint128_t&gt;, half&gt;{},
+        Layout&lt;Shape&lt;_128, _1&gt;&gt;{},    // 128 threads all in M
+        Layout&lt;Shape&lt;_1, _32&gt;&gt;{}      // 32 K-values per thread (4 atoms of 8 halfs)
+    );
+    // Coverage: (128 × 1, 1 × 32) = (128, 32) ✓
+
+    // TiledMMA: the Tensor Core plan
+    // SM80_16x8x16 atom, 4 warps arranged (2,2) in M×N.
+    // Base coverage: (2×16, 2×8) = (32, 16) per atom group.
+    // For 128×128: gemm() iterates 4× in M, 8× in N, 2× in K automatically.
+    auto tiled_mma = make_tiled_mma(
+        MMA_Atom&lt;SM80_16x8x16_F32F16F16F32_TN&gt;{},
+        Layout&lt;Shape&lt;_2, _2, _1&gt;&gt;{}   // 4 warps: 2 in M, 2 in N
+    );
+
+    // PARTITIONS: thread-level views
+
+    // Copy partitions
+    auto thr_copy = tiled_copy.get_thread_slice(threadIdx.x);
+    auto tAgA = thr_copy.partition_S(gA);   // (CPY_VEC, CPY_M, CPY_K, k_tiles)
+    auto tAsA = thr_copy.partition_D(sA);   // (CPY_VEC, CPY_M, CPY_K)
+    auto tBgB = thr_copy.partition_S(gB);   // same structure for B
+    auto tBsB = thr_copy.partition_D(sB);
+
+    // MMA partitions
+    auto thr_mma = tiled_mma.get_thread_slice(threadIdx.x);
+    auto tCsA = thr_mma.partition_A(sA);    // (MMA_VAL, MMA_M, MMA_K)
+    auto tCsB = thr_mma.partition_B(sB);    // (MMA_VAL, MMA_N, MMA_K)
+    auto tCgC = thr_mma.partition_C(gC);    // (MMA_VAL, MMA_M, MMA_N)
+
+    // Register fragments
+    auto tCrA  = make_fragment_like(tCsA);
+    auto tCrB  = make_fragment_like(tCsB);
+    auto accum = make_fragment_like(tCgC);  // C accumulator (float)
+    clear(accum);
+
+    // MAINLOOP: iterate over K tiles
+
+    int k_tiles = size&lt;2&gt;(gA);   // = K / BLK_K
+
+    for (int k = 0; k &lt; k_tiles; ++k) {
+
+        // Phase 1: COPY gmem → smem
+        copy(tiled_copy, tAgA(_, _, _, k), tAsA);
+        copy(tiled_copy, tBgB(_, _, _, k), tBsB);
+        cp_async_fence();
+        cp_async_wait&lt;0&gt;();
+        __syncthreads();
+
+        // Phase 2: COMPUTE smem → registers → MMA
+        copy(tCsA, tCrA);
+        copy(tCsB, tCrB);
+        gemm(tiled_mma, tCrA, tCrB, accum);
+
+        __syncthreads();
+    }
+
+    // EPILOGUE: write C accumulator to global memory
+
+    copy(accum, tCgC);
+}
+
+// Host: verification + timing
+int main()
+{
+    constexpr int M = 512, N = 512, K = 256;
+
+    // Allocate and initialize
+    int sizeA = M * K, sizeB = N * K, sizeC = M * N;
+
+    half *h_A = new half[sizeA];
+    half *h_B = new half[sizeB];
+    float *h_C = new float[sizeC];
+
+    // A = all 1.0h, B = all 1.0h → C[m][n] = K
+    for (int i = 0; i &lt; sizeA; ++i) h_A[i] = __float2half(1.0f);
+    for (int i = 0; i &lt; sizeB; ++i) h_B[i] = __float2half(1.0f);
+
+    half *d_A, *d_B;
+    float *d_C;
+    cudaMalloc(&amp;d_A, sizeA * sizeof(half));
+    cudaMalloc(&amp;d_B, sizeB * sizeof(half));
+    cudaMalloc(&amp;d_C, sizeC * sizeof(float));
+    cudaMemcpy(d_A, h_A, sizeA * sizeof(half), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, h_B, sizeB * sizeof(half), cudaMemcpyHostToDevice);
+
+    // Launch
+    dim3 grid(M / BLK_M, N / BLK_N);   // (4, 4) for 512×512
+    dim3 block(NUM_THREADS);             // 128
+
+    gemm_kernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(d_A, d_B, d_C, M, N, K);
+    cudaDeviceSynchronize();
+
+    // Verify
+    cudaMemcpy(h_C, d_C, sizeC * sizeof(float), cudaMemcpyDeviceToHost);
+
+    float max_err = 0.0f;
+    float expected = float(K);  // K * 1.0 * 1.0
+    for (int i = 0; i &lt; sizeC; ++i)
+        max_err = fmaxf(max_err, fabsf(h_C[i] - expected));
+
+    printf(&quot;GEMM: C(%d x %d) = A(%d x %d) * B^T(%d x %d)\n&quot;, M, N, M, K, N, K);
+    printf(&quot;Tile: %d x %d x %d, Threads: %d\n\n&quot;, BLK_M, BLK_N, BLK_K, NUM_THREADS);
+
+    // Print a 4×4 corner
+    printf(&quot;C[0:4][0:4] (expected %.0f everywhere):\n&quot;, expected);
+    for (int m = 0; m &lt; 4; ++m) {
+        printf(&quot;  &quot;);
+        for (int n = 0; n &lt; 4; ++n)
+            printf(&quot;%8.1f&quot;, h_C[m * N + n]);
+        printf(&quot;\n&quot;);
+    }
+    printf(&quot;\nMax absolute error: %e\n&quot;, max_err);
+    printf(&quot;Result: %s\n&quot;, max_err &lt; 1e-3f ? &quot;PASS&quot; : &quot;FAIL&quot;);
+
+    // Timing
+    cudaEvent_t start, stop;
+    cudaEventCreate(&amp;start);
+    cudaEventCreate(&amp;stop);
+    int warmup = 5, iters = 20;
+
+    for (int i = 0; i &lt; warmup; ++i)
+        gemm_kernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(d_A, d_B, d_C, M, N, K);
+    cudaDeviceSynchronize();
+
+    cudaEventRecord(start);
+    for (int i = 0; i &lt; iters; ++i)
+        gemm_kernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(d_A, d_B, d_C, M, N, K);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    float ms;
+    cudaEventElapsedTime(&amp;ms, start, stop);
+    float avg_ms = ms / iters;
+    double flops = 2.0 * M * N * K;
+    double tflops = (flops / (avg_ms / 1000.0)) / 1e12;
+
+    printf(&quot;\nPerformance: %.3f ms  (%.2f TFLOPS)\n&quot;, avg_ms, tflops);
+
+    // Cleanup
+    cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
+    cudaEventDestroy(start); cudaEventDestroy(stop);
+    delete[] h_A; delete[] h_B; delete[] h_C;
+    return 0;
+}
+</code></pre>
+<p><strong>Expected Output:</strong></p>
+<pre><code class="language-text">GEMM: C(512 x 512) = A(512 x 256) * B^T(512 x 256)
+Tile: 128 x 128 x 32, Threads: 128
+
+C[0:4][0:4] (expected 256 everywhere):
+       256.0   256.0   256.0   256.0
+       256.0   256.0   256.0   256.0
+       256.0   256.0   256.0   256.0
+       256.0   256.0   256.0   256.0
+
+Max absolute error: 0.000000e+00
+Result: PASS
+
+Performance: X.XXX ms  (Y.YY TFLOPS)
+</code></pre>
+<p>Each entry of C is 256.0: the dot product of a length-256 all-ones row from A with a length-256 all-ones row from B. The K-loop ran <code>256 / 32 = 8</code> iterations, each accumulating a BLK_K=32 partial product. After 8 iterations, the accumulator held the full result.</p>
+<h2>4. Step-by-Step Explanation</h2>
+<h3>Setup Phase</h3>
+<p><strong>Lines: Global tensor creation with <code>make_tensor</code></strong></p>
+<pre><code class="language-cpp">auto mA = make_tensor(make_gmem_ptr(A_ptr), make_shape(M, K), make_stride(K, Int&lt;1&gt;{}));
+</code></pre>
+<p>Creates a CuTe tensor wrapping global memory. The stride <code>(K, 1)</code> means K is stride-1 ;  the TN layout required by our MMA atom (Tutorial 06). Note that <code>K</code> is a runtime value while <code>Int&lt;1&gt;{}</code> is static. CuTe handles mixed static/dynamic strides.</p>
+<p><strong>Lines: CTA tiling with <code>local_tile</code></strong></p>
+<pre><code class="language-cpp">auto gA = local_tile(mA, make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_K&gt;{}),
+                      make_coord(get&lt;0&gt;(cta_coord), _));
+</code></pre>
+<p>This is Tutorial 02&#39;s <code>local_tile</code> at the CTA level ;  the casino floor manager assigning tables:</p>
+<ul>
+<li>Divides A&#39;s M dimension into chunks of BLK_M (128). Block <code>blockIdx.x</code> claims its chunk.</li>
+<li>Divides A&#39;s K dimension into chunks of BLK_K (32). The underscore <code>_</code> means &quot;give me all K-tiles as a third mode.&quot;</li>
+<li>Result shape: <code>(128, 32, k_tiles)</code> ;  this block&#39;s full strip of A, with <code>k_tiles = K / BLK_K</code> slices along K.</li>
+</ul>
+<p>For C, both coordinates are fixed (no underscore):</p>
+<pre><code class="language-cpp">auto gC = local_tile(mC, make_shape(Int&lt;BLK_M&gt;{}, Int&lt;BLK_N&gt;{}), cta_coord);
+</code></pre>
+<p>Result shape: <code>(128, 128)</code> ;  this block&#39;s one output tile.</p>
+<p><strong>Lines: Shared memory with swizzle</strong></p>
+<pre><code class="language-cpp">auto sA_layout = composition(Swizzle&lt;3, 3, 3&gt;{},
+    make_layout(make_shape(Int&lt;128&gt;{}, Int&lt;32&gt;{}), make_stride(Int&lt;32&gt;{}, Int&lt;1&gt;{})));
+</code></pre>
+<p>The base layout is <code>(128, 32):(32, 1)</code> ;  K stride-1, same as gmem. <code>composition(Swizzle&lt;3,3,3&gt;{}, ...)</code> applies the XOR remapping from Tutorial 05. The parameters: M=3 preserves 8-half (128-bit) contiguity for vectorized stores, B=3 scrambles 8-bank groups, S=3 separates the bit fields. This is the standard swizzle for half-precision data.</p>
+<p><strong>Lines: TiledCopy construction</strong></p>
+<pre><code class="language-cpp">auto tiled_copy = make_tiled_copy(
+    Copy_Atom&lt;SM80_CP_ASYNC_CACHEALWAYS&lt;uint128_t&gt;, half&gt;{},
+    Layout&lt;Shape&lt;_128, _1&gt;&gt;{},
+    Layout&lt;Shape&lt;_1, _32&gt;&gt;{}
+);
+</code></pre>
+<p>This is Tutorial 04&#39;s supervisor&#39;s clipboard, now sized for the GEMM tile:</p>
+<ul>
+<li><strong>Copy_Atom:</strong> <code>SM80_CP_ASYNC_CACHEALWAYS</code> ;  hardware async copy, 128 bits = 8 halfs per transaction along K (stride-1). Data goes directly from gmem to smem, bypassing registers.</li>
+<li><strong>thr_layout <code>(128, 1)</code>:</strong> All 128 threads assigned to the M dimension ;  one thread per row.</li>
+<li><strong>val_layout <code>(1, 32)</code>:</strong> Each thread copies 32 K-values (4 atoms × 8 halfs each).</li>
+<li><strong>Coverage:</strong> <code>(128 × 1, 1 × 32) = (128, 32)</code> ;  exactly one smem tile. Each K-loop iteration fills the tile with one <code>copy()</code> call per matrix.</li>
+</ul>
+<p><strong>Lines: TiledMMA construction</strong></p>
+<pre><code class="language-cpp">auto tiled_mma = make_tiled_mma(
+    MMA_Atom&lt;SM80_16x8x16_F32F16F16F32_TN&gt;{},
+    Layout&lt;Shape&lt;_2, _2, _1&gt;&gt;{}
+);
+</code></pre>
+<p>Tutorial 06&#39;s stamping press, now with multiple warps. The second argument arranges 4 warps in a 2×2 grid over M and N:</p>
+<ul>
+<li>Base atom covers 16M × 8N × 16K.</li>
+<li>2×2 warps → combined base: 32M × 16N × 16K.</li>
+<li>For the 128×128×32 smem tile, <code>gemm()</code> internally loops 4× in M (128/32), 8× in N (128/16), and 2× in K (32/16). You don&#39;t write these loops ;  <code>gemm()</code> handles them.</li>
+</ul>
+<h3>Partition Phase</h3>
+<p><strong>Lines: Copy partitions</strong></p>
+<pre><code class="language-cpp">auto tAgA = thr_copy.partition_S(gA);   // (CPY_VEC, CPY_M, CPY_K, k_tiles)
+auto tAsA = thr_copy.partition_D(sA);   // (CPY_VEC, CPY_M, CPY_K)
+</code></pre>
+<p>Same as Tutorial 04: <code>partition_S</code> creates this thread&#39;s view of the source (gmem), <code>partition_D</code> for the destination (smem). The extra <code>k_tiles</code> mode on <code>tAgA</code> comes from gA&#39;s third mode ;  it passes through untouched. In the mainloop, <code>tAgA(_, _, _, k)</code> selects the k-th K-tile for copying.</p>
+<p><strong>Lines: MMA partitions and fragments</strong></p>
+<pre><code class="language-cpp">auto tCsA = thr_mma.partition_A(sA);    // (MMA_VAL, MMA_M, MMA_K)
+auto tCrA = make_fragment_like(tCsA);   // register copy
+auto accum = make_fragment_like(tCgC);  // C accumulator
+</code></pre>
+<p>Same as Tutorial 06: <code>partition_A</code> maps smem elements to this thread&#39;s MMA fragment slots. <code>make_fragment_like</code> creates a register tensor with the same shape. The accumulator <code>accum</code> lives in registers for the entire kernel ;  it&#39;s never written to smem.</p>
+<h3>Mainloop</h3>
+<pre><code class="language-cpp">for (int k = 0; k &lt; k_tiles; ++k) {
+    copy(tiled_copy, tAgA(_, _, _, k), tAsA);    // gmem → smem
+    copy(tiled_copy, tBgB(_, _, _, k), tBsB);
+    cp_async_fence();
+    cp_async_wait&lt;0&gt;();
+    __syncthreads();
+
+    copy(tCsA, tCrA);                            // smem → registers
+    copy(tCsB, tCrB);
+    gemm(tiled_mma, tCrA, tCrB, accum);          // MMA!
+    __syncthreads();
+}
+</code></pre>
+<p>Each iteration processes one BLK_K=32 slice of the K dimension:</p>
+<ol>
+<li><p><strong>Copy</strong> ;  TiledCopy loads A&#39;s k-th tile <code>(128×32)</code> and B&#39;s k-th tile <code>(128×32)</code> from global to shared memory. The swizzle is transparent ;  the TiledCopy writes through swizzled addresses automatically.</p>
+</li>
+<li><p><strong>Sync</strong> ;  All 128 threads must finish writing to smem before any thread starts reading for the MMA.</p>
+</li>
+<li><p><strong>Compute</strong> ;  Copy from swizzled smem to register fragments, then <code>gemm()</code> executes the MMA atoms. Because the tile is larger than one atom, <code>gemm()</code> internally loops over M, N, and K repetitions. The result <strong>accumulates</strong> into <code>accum</code> ;  each K-iteration adds to the running sum, computing the partial dot products.</p>
+</li>
+<li><p><strong>Sync</strong> ;  All threads must finish reading smem before the next iteration overwrites it.</p>
+</li>
+</ol>
+<p>After <code>k_tiles</code> iterations, <code>accum</code> holds the complete C tile.</p>
+<h3>Epilogue</h3>
+<pre><code class="language-cpp">copy(accum, tCgC);
+</code></pre>
+<p>Each thread writes its accumulator fragment (128 floats for this config) to global memory via the MMA&#39;s C partition. As noted in Tutorial 06, the C fragments are scattered ;  each thread writes to non-contiguous addresses. For a production kernel, CUTLASS routes the epilogue through shared memory for coalesced writes. For correctness, the simple scattered write works fine.</p>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy: The Full Production Day.</strong></p>
+<ul>
+<li><strong>CTA grid</strong> = multiple independent factories, one per output tile. They never interact.</li>
+<li><strong>K-loop (mainloop)</strong> = one production shift. Each iteration loads a batch of raw materials (A/B K-tiles via TiledCopy), processes them on the stamping press (TiledMMA + gemm), and adds the result to the running accumulator.</li>
+<li><strong>Epilogue</strong> = end of shift. Ship the finished product (accumulated C tile) to global memory.</li>
+</ul>
+<p>The three-level tiling is the single most important structural insight for GPU GEMM. Everything else ;  pipelining, double buffering, warpgroup MMA ;  is optimization on top of this skeleton.</p>
+<p><strong>Tile size cheat sheet:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">Parameter</th>
+<th align="left">Typical Values</th>
+<th align="left">Trade-off</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">BLK_M × BLK_N</td>
+<td align="left">128×128, 128×256, 256×128</td>
+<td align="left">Larger tiles → more compute per gmem load (better arithmetic intensity). But more smem usage → fewer CTAs per SM → less occupancy.</td>
+</tr>
+<tr>
+<td align="left">BLK_K</td>
+<td align="left">32, 64</td>
+<td align="left">Larger K → fewer mainloop iterations → less loop overhead. But more smem per tile (BLK_M × BLK_K × sizeof(half) per matrix).</td>
+</tr>
+<tr>
+<td align="left">Threads</td>
+<td align="left">128 (4 warps), 256 (8 warps)</td>
+<td align="left">More threads → more copy bandwidth, but more MMA rep sharing overhead.</td>
+</tr>
+</tbody></table>
+<p><strong>Why the swizzle parameters are <code>&lt;3, 3, 3&gt;</code> for half:</strong></p>
+<ul>
+<li>M=3: 2^3 = 8 halfs = 128 bits stay contiguous. Matches the 128-bit vectorized copy.</li>
+<li>B=3: 2^3 = 8 banks scrambled. Breaks the column-stride conflict pattern.</li>
+<li>S=3: Source bits <code>[6:9)</code>, target bits <code>[3:6)</code>. Non-overlapping.</li>
+</ul>
+<p>Compare with Tutorial 05&#39;s <code>Swizzle&lt;3, 2, 3&gt;</code> for float: M=2 (4 floats = 128 bits). The only difference is the free-bit count M, which must match the element size for 128-bit vectorization.</p>
+<p><strong>Why two <code>__syncthreads()</code> in the mainloop:</strong></p>
+<pre><code class="language-text">Iteration k:                    Iteration k+1:
+  copy gmem → smem                copy gmem → smem ← OVERWRITES smem!
+  ──sync── (1)                    ──sync──
+  gemm reads smem                 gemm reads smem
+  ──sync── (2)                    ──sync──
+</code></pre>
+<p>Sync (1): Ensure all threads finished writing smem before any thread reads it for gemm.
+Sync (2): Ensure all threads finished reading smem before the next iteration&#39;s copy overwrites it.</p>
+<p>Without sync (2), a fast thread could start writing the (k+1)-th A tile into smem while a slow thread is still reading the k-th A tile for its gemm.</p>
+<p><strong>The epilogue bottleneck:</strong></p>
+<p>Our epilogue uses <code>copy(accum, tCgC)</code> ;  each thread writes its C fragments directly to global memory with scattered stores. On A100, this wastes memory bus bandwidth because each 4-byte float write fetches a full 128-byte cache line.</p>
+<p>CUTLASS&#39;s production epilogues:</p>
+<ol>
+<li>Each warp writes its C fragment to smem (in a contiguous layout).</li>
+<li>Threads read back from smem in a coalesced pattern and write to gmem.</li>
+<li>Optional: fuse element-wise operations (bias add, ReLU) into the epilogue.</li>
+</ol>
+<p>For this tutorial, the simple epilogue is correct and clear. Optimizing it is a straightforward extension.</p>
+<p><strong>Performance expectations:</strong></p>
+<p>This kernel will not match cuBLAS. Missing optimizations:</p>
+<ul>
+<li>No double-buffering (the copy and compute phases are serialized)</li>
+<li>No software pipelining (Tutorial 10)</li>
+<li>No TMA (Tutorial 08)</li>
+<li>Scattered C epilogue</li>
+<li>No predication for boundary tiles</li>
+</ul>
+<p>On A100 with 512×512×256, expect 5–15 TFLOPS (vs. ~150 TFLOPS peak for cuBLAS with large matrices). The point is not speed ;  it&#39;s understanding the structure that every fast GEMM kernel shares.</p>
+<blockquote>
+<p><strong>Gotcha ;  dynamic vs. static shapes:</strong> The global tensors use dynamic shapes (runtime M, N, K), but the smem layouts and tile shapes use static <code>Int&lt;N&gt;{}</code>. This is intentional ;  CuTe needs static shapes to generate efficient code (compile-time layout math, unrolled loops). Dynamic shapes in gmem are fine because the copy and MMA operate on the statically-shaped smem/register tiles.</p>
+</blockquote>
+<blockquote>
+<p><strong>Gotcha ;  smem capacity:</strong> Two smem tiles of 128×32 halfs = 2 × 128 × 32 × 2 bytes = 16 KB. Well within SM80&#39;s 164 KB limit. But 128×128 tiles with BLK_K=64 would need 32 KB ;  still fine, but leaves less for double buffering. Always check: <code>smem_bytes = 2 × BLK_M × BLK_K × sizeof(half)</code>.</p>
+</blockquote>
+<p><strong>What comes next:</strong> This kernel serializes copy and compute ;  the Tensor Cores are idle while waiting for data loads. Tutorial 08 (The TMA Revolution) introduces hardware-accelerated copies that free the threads. Tutorial 10 (Pipeline Overlap) shows how to overlap copy and compute using ping-pong buffering, approaching peak throughput.</p>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +736,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `07_the_global_gemm`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

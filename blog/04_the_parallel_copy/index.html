@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Parallel Copy ; Orchestrating Threads with TiledCopy — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/04_the_parallel_copy/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="The Parallel Copy ; Orchestrating Threads with TiledCopy">
+    <meta property="og:description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/04_the_parallel_copy/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-02-24">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="The Parallel Copy ; Orchestrating Threads with TiledCopy">
+    <meta name="twitter:description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The Parallel Copy ; Orchestrating Threads with TiledCopy",
+  "description": "How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.",
+  "datePublished": "2026-02-24",
+  "dateModified": "2026-02-24",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/04_the_parallel_copy/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 3021,
+  "timeRequired": "PT16M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,459 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-02-24" itemprop="datePublished">February 24, 2026</time>
+                    <span class="blog-readtime">&middot; 16 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>The Parallel Copy ;  Orchestrating Threads with TiledCopy</h1>
+<p><strong>Difficulty:</strong> Beginner–Intermediate
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing">Tutorial 02: The Art of Slicing</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy">Tutorial 03: The Naive Copy</a></p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>Tutorial 03 showed how one thread can vectorize its copy ;  using a dolly instead of hand-carrying boxes. But a real kernel doesn&#39;t have one worker on the loading dock; it has 32, 128, or 256 workers that all need to copy the <em>same tile together</em>, without stepping on each other&#39;s toes.</p>
+<p>You could combine Tutorial 02&#39;s <code>local_partition</code> with Tutorial 03&#39;s <code>copy()</code>:</p>
+<pre><code class="language-cpp">// Manual approach ;  works, but fragile
+auto thr_g = local_partition(g_tensor, Layout&lt;Shape&lt;_8, _32&gt;&gt;{}, threadIdx.x);
+auto thr_s = local_partition(s_tensor, Layout&lt;Shape&lt;_8, _32&gt;&gt;{}, threadIdx.x);
+copy(AutoVectorizingCopy{}, thr_g, thr_s);
+</code></pre>
+<p>This works ;  but <em>you</em> have to manually choose a thread layout, make sure it divides the tile evenly, and hope the resulting per-thread partition is contiguous enough for vectorization. Change the tile size? Redo the math. Transpose the layout? Redo it again. Switch from <code>LDG</code> to <code>cp.async</code>? Rewrite the whole thing.</p>
+<p>CuTe&#39;s <code>TiledCopy</code> bundles all three decisions into one declarative object:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Piece</th>
+<th align="left">What it controls</th>
+<th align="left">From Tutorial...</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>Copy_Atom</code></td>
+<td align="left">What each thread can carry in one trip (the dolly)</td>
+<td align="left">03</td>
+</tr>
+<tr>
+<td align="left"><code>thr_layout</code></td>
+<td align="left">Where each thread stands on the tile (their grid position)</td>
+<td align="left">02</td>
+</tr>
+<tr>
+<td align="left"><code>val_layout</code></td>
+<td align="left">How many values each thread handles per trip</td>
+<td align="left">New</td>
+</tr>
+</tbody></table>
+<p>You declare these once. CuTe generates the partitioning, the vectorization, and the thread-to-element mapping automatically.</p>
+<blockquote>
+<p><strong>B200 Note:</strong> On Hopper/Blackwell, <code>TiledCopy</code> is also the container for TMA and <code>cp.async</code> atoms. The <code>thr_layout</code>/<code>val_layout</code> mechanism is identical ;  only the <code>Copy_Atom</code> changes. Master this pattern now and TMA (Tutorial 08) becomes a one-line swap.</p>
+</blockquote>
+<h2>2. The Mental Model (The Visual)</h2>
+<p>Imagine you have a <strong>16×8 tile</strong> to copy and <strong>32 threads</strong> (one warp). You need to answer three questions:</p>
+<ol>
+<li><strong>What tool does each thread use?</strong> → <code>Copy_Atom</code> with <code>UniversalCopy&lt;uint128_t&gt;</code> ;  each thread moves 128 bits (4 floats) per load instruction. This is the dolly from Tutorial 03.</li>
+<li><strong>How are threads arranged?</strong> → <code>thr_layout = (4, 8)</code> ;  4 rows of threads, 8 columns.</li>
+<li><strong>How many extra values per thread?</strong> → <code>val_layout = (1, 1)</code> ;  the atom&#39;s 4 floats are enough; no extra tiling needed.</li>
+</ol>
+<pre><code class="language-text">Tile coverage = thr_layout × atom_values × val_layout
+              = (4, 8)    × (4, 1)      × (1, 1)
+              = (16, 8)   ✓ matches our tile!
+</code></pre>
+<h3>The Ownership Map</h3>
+<p>Each cell shows which thread (T00–T31) copies it. The atom&#39;s 4 floats go along mode-0 (down the column), so each thread owns a 4×1 vertical strip:</p>
+<pre><code class="language-text">              col 0    col 1    col 2    col 3    col 4    col 5    col 6    col 7
+            ┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+   row  0   │  T00   │  T04   │  T08   │  T12   │  T16   │  T20   │  T24   │  T28   │
+   row  1   │  T00   │  T04   │  T08   │  T12   │  T16   │  T20   │  T24   │  T28   │ ← T00 owns
+   row  2   │  T00   │  T04   │  T08   │  T12   │  T16   │  T20   │  T24   │  T28   │   rows 0–3,
+   row  3   │  T00   │  T04   │  T08   │  T12   │  T16   │  T20   │  T24   │  T28   │   col 0
+            ├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+   row  4   │  T01   │  T05   │  T09   │  T13   │  T17   │  T21   │  T25   │  T29   │
+   row  5   │  T01   │  T05   │  T09   │  T13   │  T17   │  T21   │  T25   │  T29   │
+   row  6   │  T01   │  T05   │  T09   │  T13   │  T17   │  T21   │  T25   │  T29   │
+   row  7   │  T01   │  T05   │  T09   │  T13   │  T17   │  T21   │  T25   │  T29   │
+            ├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+   row  8   │  T02   │  T06   │  T10   │  T14   │  T18   │  T22   │  T26   │  T30   │
+   row  9   │  T02   │  T06   │  T10   │  T14   │  T18   │  T22   │  T26   │  T30   │
+   row 10   │  T02   │  T06   │  T10   │  T14   │  T18   │  T22   │  T26   │  T30   │
+   row 11   │  T02   │  T06   │  T10   │  T14   │  T18   │  T22   │  T26   │  T30   │
+            ├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+   row 12   │  T03   │  T07   │  T11   │  T15   │  T19   │  T23   │  T27   │  T31   │
+   row 13   │  T03   │  T07   │  T11   │  T15   │  T19   │  T23   │  T27   │  T31   │
+   row 14   │  T03   │  T07   │  T11   │  T15   │  T19   │  T23   │  T27   │  T31   │
+   row 15   │  T03   │  T07   │  T11   │  T15   │  T19   │  T23   │  T27   │  T31   │
+            └────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+</code></pre>
+<p>Notice the two critical patterns:</p>
+<ul>
+<li><strong>Within each thread:</strong> T00&#39;s 4 values (rows 0–3 of col 0) are contiguous in column-major memory. That&#39;s 4 floats = 128 bits ;  a single <code>LDG.128</code>. The atom&#39;s <code>uint128_t</code> type made this happen.</li>
+<li><strong>Across threads:</strong> Each column has a different thread (T00, T04, T08, ...). No two threads touch the same cell. The <code>thr_layout = (4,8)</code> made this happen.</li>
+</ul>
+<h3>The Three-Part Recipe</h3>
+<pre><code class="language-text">┌──────────────────────────────────┐
+│         Copy_Atom                │ ← The tool: &quot;what can one thread carry?&quot;
+│  (UniversalCopy&lt;uint128_t&gt;,      │    Each load moves 4 floats / 128 bits.
+│   float)                         │    (the dolly from Tutorial 03)
+└────────────────┬─────────────────┘
+                 │
+    ┌────────────┴────────────┐
+    │                         │
+┌───┴──────────┐   ┌─────────┴──────────┐
+│  thr_layout  │   │    val_layout       │
+│  (4, 8)      │   │    (1, 1)           │
+│              │   │                     │
+│  &quot;32 workers │   │  &quot;no extra values   │
+│   in a 4×8   │   │   beyond what the   │
+│   grid&quot;      │   │   atom handles&quot;     │
+└──────────────┘   └────────────────────┘
+
+Tile covered = (4 thr × 4 atom × 1 val, 8 thr × 1 atom × 1 val) = (16, 8)
+</code></pre>
+<blockquote>
+<p><strong>The Moving Crew Rule:</strong> Tutorial 03 was about one mover and their dolly. <code>TiledCopy</code> is the <strong>shift supervisor&#39;s clipboard</strong> ;  a plan that assigns every mover to a grid position on the warehouse floor and specifies what tool to use. The <code>Copy_Atom</code> says what each mover carries (the dolly). The <code>thr_layout</code> says where each mover stands. The <code>val_layout</code> says how many extra trips each mover makes beyond one atom load. Together, these three things tile the entire room with no gaps and no overlaps.</p>
+</blockquote>
+<h2>3. The Solution (The Code)</h2>
+<p>Two kernels: one visualizes the thread-to-element ownership map, one performs an actual global → shared copy.</p>
+<pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
+#include &lt;cute/atom/copy_atom.hpp&gt;
+#include &lt;cute/algorithm/copy.hpp&gt;
+
+#include &lt;cstdio&gt;
+
+using namespace cute;
+
+// ─── Kernel 1: Visualize which thread owns which tile cell ───
+template &lt;class TiledCopy, class TileLayout&gt;
+__global__ void visualize_ownership(TiledCopy tiled_copy, TileLayout tile_layout)
+{
+    extern __shared__ float smem[];
+
+    // Build a shared-memory tensor to stamp thread IDs into
+    auto tile = make_tensor(make_smem_ptr(smem), tile_layout);
+
+    // Get this thread&#39;s copy slice
+    auto thr_copy = tiled_copy.get_thread_slice(threadIdx.x);
+    auto thr_view = thr_copy.partition_D(tile);
+
+    // Each thread writes its ID into the cells it owns
+    for (int i = 0; i &lt; size(thr_view); ++i) {
+        thr_view(i) = float(threadIdx.x);
+    }
+    __syncthreads();
+
+    // Thread 0 prints the full ownership map
+    if (threadIdx.x == 0) {
+        printf(&quot;Tile ownership map (%d x %d), %d threads:\n\n&quot;,
+               int(size&lt;0&gt;(tile)), int(size&lt;1&gt;(tile)), int(blockDim.x));
+
+        printf(&quot;       &quot;);
+        for (int n = 0; n &lt; size&lt;1&gt;(tile); ++n) printf(&quot;c%-4d &quot;, n);
+        printf(&quot;\n&quot;);
+
+        for (int m = 0; m &lt; size&lt;0&gt;(tile); ++m) {
+            printf(&quot;r%-4d  &quot;, m);
+            for (int n = 0; n &lt; size&lt;1&gt;(tile); ++n) {
+                printf(&quot;T%02d   &quot;, int(tile(m, n)));
+            }
+            printf(&quot;\n&quot;);
+        }
+    }
+}
+
+// ─── Kernel 2: Actual Global → Shared copy using TiledCopy ───
+template &lt;class TiledCopy, class GmemLayout, class SmemLayout&gt;
+__global__ void tiled_copy_kernel(float const* __restrict__ g_ptr,
+                                  GmemLayout   gmem_layout,
+                                  SmemLayout   smem_layout,
+                                  TiledCopy    tiled_copy)
+{
+    extern __shared__ float smem[];
+
+    auto g_tensor = make_tensor(make_gmem_ptr(g_ptr), gmem_layout);  // (M, N)
+    auto s_tensor = make_tensor(make_smem_ptr(smem),  smem_layout);  // (M, N)
+
+    // ── The key lines: partition via TiledCopy ──
+    auto thr_copy = tiled_copy.get_thread_slice(threadIdx.x);
+    auto thr_g    = thr_copy.partition_S(g_tensor);    // source partition
+    auto thr_s    = thr_copy.partition_D(s_tensor);    // destination partition
+
+    // ── Execute the copy ──
+    copy(tiled_copy, thr_g, thr_s);
+
+    __syncthreads();
+
+    // Thread 0 prints a few rows to verify correctness
+    if (threadIdx.x == 0) {
+        printf(&quot;\nShared memory after TiledCopy (column-major, showing row by row):\n&quot;);
+        for (int m = 0; m &lt; size&lt;0&gt;(s_tensor); ++m) {
+            printf(&quot;  row %2d: &quot;, m);
+            for (int n = 0; n &lt; size&lt;1&gt;(s_tensor); ++n) {
+                printf(&quot;%5.0f &quot;, s_tensor(m, n));
+            }
+            printf(&quot;\n&quot;);
+        }
+    }
+}
+
+int main()
+{
+    constexpr int M = 16, N = 8;
+
+    // ─── Build the TiledCopy ───
+    // 1. Copy_Atom: each load moves 128 bits (4 floats) via uint128_t
+    // 2. thr_layout: 32 threads in a 4×8 grid (column-major)
+    // 3. val_layout: 1×1 ;  the atom already handles 4 floats per thread
+    auto tiled_copy = make_tiled_copy(
+        Copy_Atom&lt;UniversalCopy&lt;uint128_t&gt;, float&gt;{},
+        Layout&lt;Shape&lt;_4, _8&gt;&gt;{},      // thr_layout: 4 rows × 8 cols = 32 threads
+        Layout&lt;Shape&lt;_1, _1&gt;&gt;{}       // val_layout: atom covers everything
+    );
+
+    // Tile layouts: column-major for both
+    auto tile_layout = make_layout(make_shape(Int&lt;M&gt;{}, Int&lt;N&gt;{}), LayoutLeft{});
+
+    int smem_bytes = M * N * sizeof(float);
+
+    // ─── Kernel 1: Visualize the ownership map ───
+    printf(&quot;=== TiledCopy Ownership Map ===\n\n&quot;);
+    visualize_ownership&lt;&lt;&lt;1, 32, smem_bytes&gt;&gt;&gt;(tiled_copy, tile_layout);
+    cudaDeviceSynchronize();
+
+    // ─── Kernel 2: Actual Global → Shared copy ───
+    // Fill source: h_data[i] = i (flat index in column-major order)
+    float h_data[M * N];
+    for (int i = 0; i &lt; M * N; ++i) h_data[i] = float(i);
+
+    float* d_data;
+    cudaMalloc(&amp;d_data, sizeof(h_data));
+    cudaMemcpy(d_data, h_data, sizeof(h_data), cudaMemcpyHostToDevice);
+
+    printf(&quot;\n=== TiledCopy: Global -&gt; Shared ===\n&quot;);
+    tiled_copy_kernel&lt;&lt;&lt;1, 32, smem_bytes&gt;&gt;&gt;(d_data, tile_layout, tile_layout, tiled_copy);
+    cudaDeviceSynchronize();
+
+    cudaFree(d_data);
+    return 0;
+}
+</code></pre>
+<p><strong>Expected Output:</strong></p>
+<pre><code class="language-text">=== TiledCopy Ownership Map ===
+
+Tile ownership map (16 x 8), 32 threads:
+
+       c0    c1    c2    c3    c4    c5    c6    c7
+r0     T00   T04   T08   T12   T16   T20   T24   T28
+r1     T00   T04   T08   T12   T16   T20   T24   T28
+r2     T00   T04   T08   T12   T16   T20   T24   T28
+r3     T00   T04   T08   T12   T16   T20   T24   T28
+r4     T01   T05   T09   T13   T17   T21   T25   T29
+r5     T01   T05   T09   T13   T17   T21   T25   T29
+r6     T01   T05   T09   T13   T17   T21   T25   T29
+r7     T01   T05   T09   T13   T17   T21   T25   T29
+r8     T02   T06   T10   T14   T18   T22   T26   T30
+r9     T02   T06   T10   T14   T18   T22   T26   T30
+r10    T02   T06   T10   T14   T18   T22   T26   T30
+r11    T02   T06   T10   T14   T18   T22   T26   T30
+r12    T03   T07   T11   T15   T19   T23   T27   T31
+r13    T03   T07   T11   T15   T19   T23   T27   T31
+r14    T03   T07   T11   T15   T19   T23   T27   T31
+r15    T03   T07   T11   T15   T19   T23   T27   T31
+
+=== TiledCopy: Global -&gt; Shared ===
+
+Shared memory after TiledCopy (column-major, showing row by row):
+  row  0:     0    16    32    48    64    80    96   112
+  row  1:     1    17    33    49    65    81    97   113
+  row  2:     2    18    34    50    66    82    98   114
+  row  3:     3    19    35    51    67    83    99   115
+  row  4:     4    20    36    52    68    84   100   116
+  row  5:     5    21    37    53    69    85   101   117
+  row  6:     6    22    38    54    70    86   102   118
+  row  7:     7    23    39    55    71    87   103   119
+  row  8:     8    24    40    56    72    88   104   120
+  row  9:     9    25    41    57    73    89   105   121
+  row 10:    10    26    42    58    74    90   106   122
+  row 11:    11    27    43    59    75    91   107   123
+  row 12:    12    28    44    60    76    92   108   124
+  row 13:    13    29    45    61    77    93   109   125
+  row 14:    14    30    46    62    78    94   110   126
+  row 15:    15    31    47    63    79    95   111   127
+</code></pre>
+<p>The values confirm column-major order: element 0 at (0,0), element 1 at (1,0), ..., element 16 at (0,1). The <code>TiledCopy</code> moved every element to the right shared memory cell ;  32 threads, zero conflicts, all vectorized.</p>
+<h2>4. Step-by-Step Explanation</h2>
+<p><strong>Line: <code>auto tiled_copy = make_tiled_copy(Copy_Atom{...}, thr_layout, val_layout);</code></strong></p>
+<p>This is the declaration ;  the shift supervisor&#39;s clipboard. Three ingredients:</p>
+<ol>
+<li><p><strong><code>Copy_Atom&lt;UniversalCopy&lt;uint128_t&gt;, float&gt;{}</code></strong> ;  The copy atom. <code>uint128_t</code> means each thread loads 128 bits = 4 floats in a single instruction (<code>LDG.128</code>). The <code>float</code> tells CuTe the logical element type.</p>
+</li>
+<li><p><strong><code>Layout&lt;Shape&lt;_4, _8&gt;&gt;{}</code></strong> ;  Thread layout. 32 threads arranged as 4 rows × 8 columns in column-major order. Thread 0 → position (0,0), Thread 1 → (1,0), ..., Thread 4 → (0,1), ..., Thread 31 → (3,7).</p>
+</li>
+<li><p><strong><code>Layout&lt;Shape&lt;_1, _1&gt;&gt;{}</code></strong> ;  Value layout. No extra values per thread beyond the atom&#39;s 4 floats. If the tile were bigger, you&#39;d increase this to cover the extra elements (see &quot;Bigger Tiles&quot; below).</p>
+</li>
+</ol>
+<p><strong>Tile coverage:</strong> <code>(4 threads × 4 atom_vals × 1 val, 8 threads × 1 atom_val × 1 val) = (16, 8)</code>.</p>
+<p><strong>Line: <code>auto thr_copy = tiled_copy.get_thread_slice(threadIdx.x);</code></strong></p>
+<p>Each thread asks the <code>TiledCopy</code> for its personal <em>slice</em> ;  a lightweight object that knows which tile cells belong to this thread. This is each mover reading their assignment off the clipboard.</p>
+<p><strong>Line: <code>auto thr_g = thr_copy.partition_S(g_tensor);</code></strong></p>
+<p>Partitions the source (global memory) tensor for this thread. The result is a tensor containing only the elements this thread should read. The shape is <code>(ValuesPerAtom, Repetitions...)</code>:</p>
+<ul>
+<li>For our 16×8 tile: shape <code>(_4)</code> ;  four contiguous floats loaded as one <code>uint128_t</code>. No repetitions because the tile matches the <code>TiledCopy</code> coverage exactly.</li>
+<li>If the tile were <strong>32×8</strong>: shape <code>(_4, _2)</code> ;  four floats per load × 2 rounds along mode-0. CuTe adds the repetition dimension automatically.</li>
+</ul>
+<p><strong>Line: <code>auto thr_s = thr_copy.partition_D(s_tensor);</code></strong></p>
+<p>Same for the destination (shared memory). Its shape matches <code>thr_g</code> so that <code>copy()</code> knows where each source value lands.</p>
+<p><strong>Line: <code>copy(tiled_copy, thr_g, thr_s);</code></strong></p>
+<p>Executes the copy. CuTe loops over all repetition dimensions (if any), applying the <code>Copy_Atom</code> to each batch of values. For our 16×8 tile:</p>
+<ul>
+<li>32 threads × 4 floats each = 128 floats = entire tile</li>
+<li>Each thread issues one <code>LDG.128</code> (global load) and one <code>STS.128</code> (shared store)</li>
+<li>Total: 32 loads + 32 stores, all vectorized ;  the entire tile moves in one round</li>
+</ul>
+<h3>Bigger Tiles and Repetitions</h3>
+<p>What if your tile is 128×128 but you still have 32 threads?</p>
+<pre><code class="language-cpp">auto big_copy = make_tiled_copy(
+    Copy_Atom&lt;UniversalCopy&lt;uint128_t&gt;, float&gt;{},
+    Layout&lt;Shape&lt;_4, _8&gt;&gt;{},      // still 32 threads
+    Layout&lt;Shape&lt;_1, _1&gt;&gt;{}       // same atom
+);
+// TiledCopy covers (16, 8) per round.
+// Tile is (128, 128) → repetitions = (128/16, 128/8) = (8, 16).
+// partition_S returns shape (_4, _8, _16).
+// copy() loops over the 8×16 = 128 repetitions automatically.
+</code></pre>
+<p>Or you can increase <code>val_layout</code> to give each thread more work per round:</p>
+<pre><code class="language-cpp">auto wide_copy = make_tiled_copy(
+    Copy_Atom&lt;UniversalCopy&lt;uint128_t&gt;, float&gt;{},
+    Layout&lt;Shape&lt;_4, _8&gt;&gt;{},      // 32 threads
+    Layout&lt;Shape&lt;_2, _1&gt;&gt;{}       // each thread handles 2 columns of atom-loads
+);
+// Coverage per round: (4×4×2, 8×1×1) = (32, 8).
+// partition_S for a 128×128 tile: shape (_4, _2, _4, _16).
+</code></pre>
+<p>Don&#39;t worry about memorizing these shapes ;  the point is that <code>copy()</code> handles the loops. You just set up the <code>TiledCopy</code> and call <code>copy()</code>.</p>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy:</strong> Tutorial 03 was about one mover and their dolly. <code>TiledCopy</code> is the <strong>shift supervisor&#39;s clipboard</strong> ;  a plan that assigns every mover to a grid position on the warehouse floor. The <code>Copy_Atom</code> says what tool each mover uses (the dolly). The <code>thr_layout</code> is where they stand. The <code>val_layout</code> is how many extra trips each mover makes. Three pieces, one plan, zero overlap.</p>
+<p><strong>The <code>val_layout</code> and Vectorization:</strong></p>
+<p>The atom&#39;s vector direction must align with the contiguous memory dimension, or you lose vectorization:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Memory Layout</th>
+<th align="left">Atom Type</th>
+<th align="left">Why It Works</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Column-major <code>(M,N):(1,M)</code></td>
+<td align="left"><code>UniversalCopy&lt;uint128_t&gt;</code> with thr (4,8)</td>
+<td align="left">4 floats along mode-0 are stride-1 → <code>LDG.128</code></td>
+</tr>
+<tr>
+<td align="left">Row-major <code>(M,N):(N,1)</code></td>
+<td align="left"><code>UniversalCopy&lt;uint128_t&gt;</code> with thr (8,4)</td>
+<td align="left">Swap thread arrangement so the atom&#39;s 4 values hit stride-1 mode-1</td>
+</tr>
+<tr>
+<td align="left">Strided / dynamic</td>
+<td align="left"><code>UniversalCopy&lt;float&gt;</code></td>
+<td align="left">Scalar fallback ;  always works, always slow</td>
+</tr>
+</tbody></table>
+<p>If the atom&#39;s 4-element chunk lands on non-contiguous addresses, the hardware can&#39;t coalesce them and you&#39;re back to scalar speed. Always check: <em>&quot;which dimension has stride 1?&quot;</em> ;  and point the atom&#39;s vector width in that direction.</p>
+<p><strong>The <code>TiledCopy</code> API Cheat-Sheet:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">API Call</th>
+<th align="left">What It Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>make_tiled_copy(atom, thr, val)</code></td>
+<td align="left">Build the plan from three ingredients</td>
+</tr>
+<tr>
+<td align="left"><code>tiled_copy.get_thread_slice(tid)</code></td>
+<td align="left">Each worker reads their assignment</td>
+</tr>
+<tr>
+<td align="left"><code>slice.partition_S(src)</code></td>
+<td align="left">Partition source for this thread</td>
+</tr>
+<tr>
+<td align="left"><code>slice.partition_D(dst)</code></td>
+<td align="left">Partition destination for this thread</td>
+</tr>
+<tr>
+<td align="left"><code>copy(tiled_copy, thr_src, thr_dst)</code></td>
+<td align="left">Execute the copy (loops over repetitions)</td>
+</tr>
+</tbody></table>
+<p><strong><code>TiledCopy</code> vs. Manual <code>local_partition</code> + <code>copy</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left"></th>
+<th align="left"><code>local_partition</code> + <code>copy</code></th>
+<th align="left"><code>TiledCopy</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Thread mapping</td>
+<td align="left">You compute it</td>
+<td align="left">Declared once</td>
+</tr>
+<tr>
+<td align="left">Vectorization</td>
+<td align="left">Depends on partition contiguity</td>
+<td align="left">Follows from atom type</td>
+</tr>
+<tr>
+<td align="left">Swap to <code>cp.async</code> / TMA</td>
+<td align="left">Rewrite everything</td>
+<td align="left">Change one <code>Copy_Atom</code></td>
+</tr>
+<tr>
+<td align="left">Repetitions for big tiles</td>
+<td align="left">Manual loop</td>
+<td align="left">Automatic</td>
+</tr>
+</tbody></table>
+<p><strong>Hardware Note:</strong> For global memory loads, the GPU coalesces requests from threads in the same warp that hit the same 128-byte cache line. To maximize coalescing, threads with adjacent IDs should access adjacent memory addresses. For column-major data, spread threads along mode-0 (rows) first ;  which is what <code>thr_layout = (T_rows, T_cols)</code> in column-major order does naturally: threads 0, 1, 2, 3 hit rows 0–3 of the same column, which are adjacent in memory.</p>
+<blockquote>
+<p><strong>Gotcha ;  partition shape surprise:</strong> <code>partition_S</code> and <code>partition_D</code> return tensors shaped <code>(ValuesPerAtom, Repetitions...)</code>, NOT <code>(M, N)</code>. The first mode is the &quot;hand&quot; for a single atom invocation; the remaining modes are how many times the atom repeats to cover the tile. If you <code>print()</code> the partition and see an unexpected number of modes, it&#39;s because your tile is bigger than the <code>TiledCopy</code>&#39;s single-round coverage. This is normal ;  <code>copy()</code> iterates over the repetitions automatically.</p>
+</blockquote>
+<p><strong>What comes next:</strong> Each thread&#39;s copy is now vectorized and coordinated. But when 32 threads simultaneously write to shared memory, they can collide on the <em>same bank</em>. If threads 0, 8, 16, 24 all write to addresses that map to shared memory bank 0, the hardware serializes those writes ;  a <strong>bank conflict</strong>. That&#39;s the topic of Tutorial 05 (Swizzling), where <code>composition</code> with a <code>Swizzle</code> layout remaps addresses to spread them across banks.</p>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +647,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `04_the_parallel_copy`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

@@ -4,7 +4,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Darshan Baslani</title>
+    <title>Darshan Baslani — ML Systems Engineer & CUDA Developer</title>
+    <meta name="description" content="Darshan Baslani is an ML Systems Engineer and Master's student in Data Science. Specializing in CUDA kernel optimization, GPU programming, and low-level systems with C++, Go, and CUDA.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Darshan Baslani — ML Systems Engineer & CUDA Developer">
+    <meta property="og:description" content="Exploring the intersection of Computation and Machine Intelligence. Specializing in CUDA kernel optimization, GPU programming, and low-level systems.">
+    <meta property="og:url" content="https://darshanbaslani.com/">
+    <meta property="og:site_name" content="Darshan Baslani">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Darshan Baslani — ML Systems Engineer & CUDA Developer">
+    <meta name="twitter:description" content="Exploring the intersection of Computation and Machine Intelligence. Specializing in CUDA kernel optimization, GPU programming, and low-level systems.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Darshan Baslani",
+      "url": "https://darshanbaslani.com",
+      "jobTitle": "ML Systems Engineer",
+      "description": "ML Systems Engineer and Master's student in Data Science, specializing in CUDA kernel optimization, GPU programming, and low-level systems.",
+      "sameAs": [
+        "https://github.com/Darshan-Baslani",
+        "https://www.linkedin.com/in/darshan-baslani-7086051b6/",
+        "https://twitter.com/neuronfitting"
+      ],
+      "knowsAbout": ["CUDA", "GPU Programming", "Machine Learning", "C++", "Go", "Systems Programming"]
+    }
+    </script>
     <script>
         // Redirect old blog URLs: /?blog.html?post=slug -> /blog/slug/
         (function() {
@@ -17,7 +51,15 @@
             }
         })();
     </script>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/webp" href="icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
@@ -303,6 +345,28 @@
             color: var(--accent);
         }
 
+        /* --- 9. ENTRANCE ANIMATIONS --- */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-enter {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
         /* --- MEDIA QUERIES --- */
         @media (max-width: 768px) {
             h1 {
@@ -393,15 +457,15 @@
 
     </main>
 
-    <footer class="animate-enter delay-4">
+    <footer class="animate-enter delay-4" role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
@@ -410,16 +474,12 @@
 
 
     <script>
-        // Theme toggle
+        // Theme toggle — init icon based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
 
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') {
-                toggleButton.textContent = '☀️';
-            }
+        if (htmlElement.getAttribute('data-theme') === 'dark') {
+            toggleButton.textContent = '☀️';
         }
 
         toggleButton.addEventListener('click', () => {
@@ -433,7 +493,6 @@
                 toggleButton.textContent = '☀️';
             }
         });
-
     </script>
 
     <script src="trackers.js"></script>

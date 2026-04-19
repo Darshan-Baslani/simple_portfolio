@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello, Layout! ; Visualizing Memory in CuTe — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/01_hello_layout/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Hello, Layout! ; Visualizing Memory in CuTe">
+    <meta property="og:description" content="Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/01_hello_layout/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2025-06-15">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Hello, Layout! ; Visualizing Memory in CuTe">
+    <meta name="twitter:description" content="Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Hello, Layout! ; Visualizing Memory in CuTe",
+  "description": "Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.",
+  "datePublished": "2025-06-15",
+  "dateModified": "2025-06-15",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/01_hello_layout/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 1134,
+  "timeRequired": "PT6M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,223 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2025-06-15" itemprop="datePublished">June 15, 2025</time>
+                    <span class="blog-readtime">&middot; 6 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>Hello, Layout! ;  Visualizing Memory in CuTe</h1>
+<p><strong>Difficulty:</strong> Beginner
+<strong>Prerequisites:</strong> Basic CUDA (kernel launch, <code>__global__</code>), C/C++ pointers</p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>You have a flat <code>float*</code> pointer ;  1D memory. But your algorithm thinks in rows and columns: a matrix, a tile, a 2D block of pixels. Right now you&#39;re hand-writing index math like <code>ptr[row * WIDTH + col]</code> and praying you got the constant right. Every time the layout changes (transpose? padding? different tile size?), you rewrite the formula and re-introduce bugs.</p>
+<p>CuTe&#39;s <code>Layout</code> solves this by making the coordinate-to-address mapping a <strong>first-class object</strong>. You declare the shape (how many rows, how many columns) and the stride (the distance between elements), and the Layout <em>computes</em> the flat index for you. Change from row-major to column-major? Swap the strides. Reshape from 2D to 3D? Add a mode. The algorithm code never changes.</p>
+<blockquote>
+<p><strong>B200 Note:</strong> On Hopper and Blackwell GPUs, the TMA (Tensor Memory Accelerator) hardware needs a <em>descriptor</em> that encodes shape and stride information. Understanding Layouts is the <strong>only</strong> way to program TMA correctly.</p>
+</blockquote>
+<h2>2. The Mental Model (The Visual)</h2>
+<p>A <code>Layout</code> is a <strong>lens</strong> that lets you view flat, 1D memory as if it were a multidimensional grid.</p>
+<p>Take <code>Shape&lt;2, 4&gt;</code> ;  that&#39;s 2 rows and 4 columns, so 8 elements total. The <code>Stride</code> decides <em>how</em> those coordinates map to physical addresses.</p>
+<h3>Column-Major (The Default): <code>(2,4):(1,2)</code></h3>
+<p>Stride <code>(1, 2)</code> means: move 1 row down → address +1. Move 1 column right → address +2.</p>
+<pre><code class="language-text">Physical Memory (1D):
+┌───┬───┬───┬───┬───┬───┬───┬───┐
+│ 0 │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │
+└───┴───┴───┴───┴───┴───┴───┴───┘
+
+Layout maps coordinates → addresses:
+
+        col 0   col 1   col 2   col 3
+       ┌───────┬───────┬───────┬───────┐
+row 0  │   0   │   2   │   4   │   6   │
+       ├───────┼───────┼───────┼───────┤
+row 1  │   1   │   3   │   5   │   7   │
+       └───────┴───────┴───────┴───────┘
+
+address = row * 1  +  col * 2
+          ───────     ───────
+          stride[0]   stride[1]
+</code></pre>
+<p>Notice the columns are stored contiguously in memory: addresses <code>0,1</code> are column 0, addresses <code>2,3</code> are column 1, etc. That&#39;s <strong>column-major</strong> ;  just like Fortran and MATLAB.</p>
+<h3>Row-Major: <code>(2,4):(4,1)</code></h3>
+<p>Stride <code>(4, 1)</code> means: move 1 row down → address +4. Move 1 column right → address +1.</p>
+<pre><code class="language-text">        col 0   col 1   col 2   col 3
+       ┌───────┬───────┬───────┬───────┐
+row 0  │   0   │   1   │   2   │   3   │
+       ├───────┼───────┼───────┼───────┤
+row 1  │   4   │   5   │   6   │   7   │
+       └───────┴───────┴───────┴───────┘
+
+address = row * 4  +  col * 1
+          ───────     ───────
+          stride[0]   stride[1]
+</code></pre>
+<p>Now rows are contiguous: addresses <code>0,1,2,3</code> are row 0. That&#39;s <strong>row-major</strong> ;  the C/C++ convention.</p>
+<blockquote>
+<p><strong>Key Insight:</strong> Same shape, same data, same 8 elements. The <em>only</em> difference is the stride. That&#39;s the entire power of a Layout: <strong>the shape says &quot;what,&quot; the stride says &quot;where.&quot;</strong></p>
+</blockquote>
+<h2>3. The Solution (The Code)</h2>
+<p>A complete CUDA kernel that creates Layouts and prints the coordinate-to-address mapping.</p>
+<pre><code class="language-cpp">#include &lt;cute/layout.hpp&gt;
+#include &lt;cute/tensor.hpp&gt;
+
+using namespace cute;
+
+// Print a rank-2 layout as a grid of (row, col) -&gt; address
+template &lt;class Shape, class Stride&gt;
+__device__ void print_layout_2d(Layout&lt;Shape, Stride&gt; const&amp; layout)
+{
+    // Only let thread 0 print
+    if (threadIdx.x != 0 || blockIdx.x != 0) return;
+
+    printf(&quot;Layout: &quot;);
+    print(layout);
+    printf(&quot;\n&quot;);
+
+    for (int row = 0; row &lt; size&lt;0&gt;(layout); ++row) {
+        for (int col = 0; col &lt; size&lt;1&gt;(layout); ++col) {
+            printf(&quot;  (%d,%d)-&gt;%d&quot;, row, col, int(layout(row, col)));
+        }
+        printf(&quot;\n&quot;);
+    }
+    printf(&quot;\n&quot;);
+}
+
+__global__ void hello_layout_kernel()
+{
+    // 1. Column-major (default when stride is omitted)
+    auto col_major = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{}));
+    printf(&quot;=== Column-Major ===\n&quot;);
+    print_layout_2d(col_major);
+
+    // 2. Row-major (use LayoutRight tag)
+    auto row_major = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{}), LayoutRight{});
+    printf(&quot;=== Row-Major ===\n&quot;);
+    print_layout_2d(row_major);
+
+    // 3. Custom stride
+    auto custom = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{}),
+                              make_stride(Int&lt;8&gt;{}, Int&lt;1&gt;{}));
+    printf(&quot;=== Custom Stride (2,4):(8,1) ===\n&quot;);
+    print_layout_2d(custom);
+}
+
+int main()
+{
+    hello_layout_kernel&lt;&lt;&lt;1, 1&gt;&gt;&gt;();
+    cudaDeviceSynchronize();
+    return 0;
+}
+</code></pre>
+<p><strong>Expected Output:</strong></p>
+<pre><code class="language-text">=== Column-Major ===
+Layout: (_2,_4):(_1,_2)
+  (0,0)-&gt;0  (0,1)-&gt;2  (0,2)-&gt;4  (0,3)-&gt;6
+  (1,0)-&gt;1  (1,1)-&gt;3  (1,2)-&gt;5  (1,3)-&gt;7
+
+=== Row-Major ===
+Layout: (_2,_4):(_4,_1)
+  (0,0)-&gt;0  (0,1)-&gt;1  (0,2)-&gt;2  (0,3)-&gt;3
+  (1,0)-&gt;4  (1,1)-&gt;5  (1,2)-&gt;6  (1,3)-&gt;7
+
+=== Custom Stride (2,4):(8,1) ===
+Layout: (_2,_4):(_8,_1)
+  (0,0)-&gt;0  (0,1)-&gt;1  (0,2)-&gt;2  (0,3)-&gt;3
+  (1,0)-&gt;8  (1,1)-&gt;9  (1,2)-&gt;10  (1,3)-&gt;11
+</code></pre>
+<h2>4. Step-by-Step Explanation</h2>
+<p><strong>Line: <code>auto col_major = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{}));</code></strong></p>
+<ul>
+<li><code>make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{})</code> creates a compile-time shape of 2 rows by 4 columns. <code>Int&lt;N&gt;{}</code> is CuTe&#39;s static integer ;  the compiler knows the value, so the stride math becomes zero-cost.</li>
+<li><code>make_layout(shape)</code> with no stride argument defaults to <code>LayoutLeft</code> (column-major). CuTe computes the stride as an exclusive prefix product of the shape from left to right: stride₀ = 1, stride₁ = 1 × 2 = 2. Result: <code>(2,4):(1,2)</code>.</li>
+</ul>
+<p><strong>Line: <code>auto row_major = make_layout(make_shape(Int&lt;2&gt;{}, Int&lt;4&gt;{}), LayoutRight{});</code></strong></p>
+<ul>
+<li>The <code>LayoutRight{}</code> tag generates strides as an exclusive prefix product from <em>right to left</em>: stride₁ = 1, stride₀ = 1 × 4 = 4. Result: <code>(2,4):(4,1)</code>.</li>
+</ul>
+<p><strong>Line: <code>auto custom = make_layout(make_shape(...), make_stride(Int&lt;8&gt;{}, Int&lt;1&gt;{}));</code></strong></p>
+<ul>
+<li>Here we provide an explicit stride. Row stride of 8 means there&#39;s a gap between rows ;  this is how you express a matrix that lives inside a larger allocation (e.g., a 2×4 submatrix of an 8-column matrix).</li>
+</ul>
+<p><strong>Line: <code>layout(row, col)</code></strong></p>
+<ul>
+<li>This is the layout&#39;s core operation: it takes a 2D coordinate and returns the flat 1D index. The formula is <code>row × stride[0] + col × stride[1]</code>. For column-major: <code>1×row + 2×col</code>. For row-major: <code>4×row + 1×col</code>.</li>
+</ul>
+<p><strong>Line: <code>size&lt;0&gt;(layout)</code> / <code>size&lt;1&gt;(layout)</code></strong></p>
+<ul>
+<li><code>size&lt;0&gt;</code> returns the extent of mode 0 (rows = 2). <code>size&lt;1&gt;</code> returns mode 1 (columns = 4). This drives the loop bounds. Because the shape is static, the compiler can fully unroll these loops.</li>
+</ul>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p><strong>Analogy:</strong> A Layout is a <em>spreadsheet formula</em> for memory. The Shape is how many rows and columns the spreadsheet has. The Stride is the formula in each cell that says &quot;to find my data, take my row number × <em>this</em> + my column number × <em>that</em>.&quot; Change the formula, change the order data is fetched from RAM ;  but the spreadsheet looks identical to the user.</p>
+<p><strong>Hardware Note:</strong> On B200/Hopper GPUs, when you set up a TMA descriptor with <code>make_tma_copy</code>, you must provide a Layout that describes the tensor&#39;s shape and strides in global memory. If you get the strides wrong, the TMA engine will fetch garbage. The concepts from this tutorial ;  <code>make_shape</code>, <code>make_stride</code>, column-major vs. row-major ;  are <em>exactly</em> what the TMA descriptor encodes.</p>
+<p><strong>CuTe Notation Cheat-Sheet:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">Notation</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>(2,4):(1,2)</code></td>
+<td align="left">Shape <code>(2,4)</code>, Stride <code>(1,2)</code> ;  column-major</td>
+</tr>
+<tr>
+<td align="left"><code>(2,4):(4,1)</code></td>
+<td align="left">Shape <code>(2,4)</code>, Stride <code>(4,1)</code> ;  row-major</td>
+</tr>
+<tr>
+<td align="left"><code>_N</code> in output</td>
+<td align="left">Static (compile-time) integer</td>
+</tr>
+<tr>
+<td align="left"><code>N</code> in output</td>
+<td align="left">Dynamic (run-time) integer</td>
+</tr>
+<tr>
+<td align="left"><code>Int&lt;N&gt;{}</code></td>
+<td align="left">C++ way to write a static integer</td>
+</tr>
+<tr>
+<td align="left"><code>LayoutLeft</code></td>
+<td align="left">Column-major stride generation (default)</td>
+</tr>
+<tr>
+<td align="left"><code>LayoutRight</code></td>
+<td align="left">Row-major stride generation</td>
+</tr>
+</tbody></table>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +411,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `01_hello_layout`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const { marked } = require('marked');
 
 const ROOT_DIR = __dirname;
 const BLOG_DIR = path.join(ROOT_DIR, 'blog');
 const BLOGS_DATA_DIR = path.join(ROOT_DIR, 'blogs');
+const SITE_URL = 'https://darshanbaslani.com';
 
 // Read manifest
 const manifestPath = path.join(BLOGS_DATA_DIR, 'manifest.json');
@@ -14,15 +16,141 @@ if (!fs.existsSync(BLOG_DIR)) {
     fs.mkdirSync(BLOG_DIR, { recursive: true });
 }
 
-// 1. Generate blog/index.html (The main blogs tab)
-// We will simply read index.html, grab everything except hero/about, and inject blogs HTML.
+// Configure marked for SSR
+marked.setOptions({ gfm: true, breaks: false });
+
+// Helper: format date for display
+function formatDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Helper: format date for ISO (structured data)
+function isoDate(dateStr) {
+    return dateStr; // Already in YYYY-MM-DD
+}
+
+// Helper: estimate reading time
+function readingTime(text) {
+    const words = text.split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / 200));
+}
+
+// Helper: strip markdown to plain text (for meta descriptions)
+function stripMarkdown(md) {
+    return md
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`]+`/g, '')
+        .replace(/!\[.*?\]\(.*?\)/g, '')
+        .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
+        .replace(/#{1,6}\s/g, '')
+        .replace(/[*_~|>-]/g, '')
+        .replace(/\n+/g, ' ')
+        .trim()
+        .substring(0, 300);
+}
+
+// Helper: escape HTML in JSON-LD strings
+function escJsonLd(str) {
+    return str.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+// ============================================================
+// 1. Generate blog/index.html (The main blogs listing page)
+// ============================================================
+const blogCards = manifest.posts.slice().reverse().map(post => {
+    const href = post.slug.startsWith('http') ? post.slug : `/blog/${post.slug}/`;
+    const isExternal = post.slug.startsWith('http');
+    const target = isExternal ? ' target="_blank" rel="noopener"' : '';
+    return `                <a href="${href}" class="card"${target}>
+                    <span class="card-tag">${post.tag}</span>
+                    <h3>${post.title.replaceAll('—', '; ')}</h3>
+                    <p>${post.description}</p>
+                    <time datetime="${post.date}" class="card-date">${formatDate(post.date)}</time>
+                </a>`;
+}).join('\n');
+
+// Add the external Medium posts that aren't in manifest
+const externalPosts = `                <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57" class="card" target="_blank" rel="noopener">
+                    <span class="card-tag">CUDA</span>
+                    <h3>Beating PyTorch: Writing a Faster Softmax Kernel in CUDA</h3>
+                    <p>Writing a faster Softmax kernel in CUDA than PyTorch's implementation.</p>
+                </a>
+                <a href="https://medium.com/@dcbaslani/stable-diffusion-1-5-how-i-optimized-it-a-worklog-09aa56498cf2" class="card" target="_blank" rel="noopener">
+                    <span class="card-tag">Machine Learning</span>
+                    <h3>Stable Diffusion 1.5: How I Optimized It</h3>
+                    <p>A detailed worklog on optimizing Stable Diffusion 1.5 for performance.</p>
+                </a>
+                <a href="https://medium.com/@dcbaslani/propositional-logic-25abd05e5aac" class="card" target="_blank" rel="noopener">
+                    <span class="card-tag">Logic</span>
+                    <h3>Propositional Logic</h3>
+                    <p>A deep dive into the fundamental building blocks of mathematical logic.</p>
+                </a>
+                <a href="https://medium.com/@dcbaslani/raw-dawgging-linear-regression-4a533e1f8ad2" class="card" target="_blank" rel="noopener">
+                    <span class="card-tag">Machine Learning</span>
+                    <h3>Raw Dawgging Linear Regression</h3>
+                    <p>Understanding Linear Regression by building it from the ground up.</p>
+                </a>`;
+
+// JSON-LD for the blog listing (CollectionPage)
+const blogListJsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Blog — Darshan Baslani",
+    "description": "Technical blog posts on CUDA programming, GPU kernel optimization, CuTe library, and machine learning systems by Darshan Baslani.",
+    "url": `${SITE_URL}/blog/`,
+    "author": {
+        "@type": "Person",
+        "name": "Darshan Baslani",
+        "url": SITE_URL
+    },
+    "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": manifest.posts.map((post, i) => ({
+            "@type": "ListItem",
+            "position": i + 1,
+            "url": `${SITE_URL}/blog/${post.slug}/`,
+            "name": post.title
+        }))
+    }
+}, null, 2);
+
 const indexHtmlTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blogs - Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>Blog — Darshan Baslani | CUDA, GPU Programming & ML Systems</title>
+    <meta name="description" content="Technical blog posts on CUDA programming, GPU kernel optimization, CuTe library, and machine learning systems by Darshan Baslani.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="${SITE_URL}/blog/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Blog — Darshan Baslani">
+    <meta property="og:description" content="Technical blog posts on CUDA programming, GPU kernel optimization, CuTe library, and machine learning systems.">
+    <meta property="og:url" content="${SITE_URL}/blog/">
+    <meta property="og:site_name" content="Darshan Baslani">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Blog — Darshan Baslani">
+    <meta name="twitter:description" content="Technical blog posts on CUDA programming, GPU kernel optimization, CuTe library, and machine learning systems.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+${blogListJsonLd}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -93,6 +221,7 @@ const indexHtmlTemplate = `<!DOCTYPE html>
         .card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
         .card p { color: var(--text-muted); font-size: 0.95rem; }
         .card-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 10px; border-radius: 6px; margin-bottom: 1rem; color: var(--tag-text); letter-spacing: 0.5px; font-weight: 500; transition: background-color 0.4s ease, color 0.4s ease; }
+        .card-date { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem; }
 
         footer { padding: 4rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; transition: border-color 0.4s ease; }
         .social-links { margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem; }
@@ -105,9 +234,9 @@ const indexHtmlTemplate = `<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <header class="animate-enter">
+    <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -120,97 +249,28 @@ const indexHtmlTemplate = `<!DOCTYPE html>
     </header>
 
     <main class="container">
-        <section id="blogs" class="content-section animate-enter delay-4">
-            <h2 class="section-title">Latest Thoughts</h2>
+        <section id="blogs" class="content-section animate-enter delay-4" aria-label="Blog posts">
+            <h1 class="section-title">Latest Thoughts</h1>
             <div class="narrative-text">
                 <p>I write to clear my mind and share what I learn.</p>
             </div>
             
             <div class="grid">
-                <!-- DYNAMIC CONTENT HERE -->
-                <a href="/blog/cute-dsl-blog/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry</h3>
-                    <p>Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.</p>
-                </a>
-                <a href="/blog/09_wgmma/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>WGMMA ; Warpgroup MMA</h3>
-                    <p>How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.</p>
-                </a>
-                <a href="/blog/08_the_tma_revolution/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The TMA Revolution (Async Copy)</h3>
-                    <p>With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.</p>
-                </a>
-                <a href="/blog/07_the_global_gemm/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Global GEMM — Putting It All Together</h3>
-                    <p>Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.</p>
-                </a>
-                <a href="/blog/06_hello_mma/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Hello, MMA — Your First Tensor Core Instruction</h3>
-                    <p>How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.</p>
-                </a>
-                <a href="/blog/05_swizzling/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Swizzling ; Avoiding Shared Memory Bank Conflicts</h3>
-                    <p>How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.</p>
-                </a>
-                <a href="/blog/04_the_parallel_copy/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Parallel Copy ; Orchestrating Threads with TiledCopy</h3>
-                    <p>How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.</p>
-                </a>
-                <a href="/blog/03_the_naive_copy/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Naive Copy ; Scalar vs. Vectorized Memory Movement</h3>
-                    <p>Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.</p>
-                </a>
-                <a href="/blog/02_the_art_of_slicing/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>The Art of Slicing ; Partitioning Data Across Blocks and Threads</h3>
-                    <p>How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.</p>
-                </a>
-                <a href="/blog/01_hello_layout/" class="card">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Hello, Layout! ; Visualizing Memory in CuTe</h3>
-                    <p>Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.</p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57" class="card" target="_blank">
-                    <span class="card-tag">CUDA</span>
-                    <h3>Beating PyTorch: Writing a Faster Softmax Kernel in CUDA</h3>
-                    <p>Writing a faster Softmax kernel in CUDA than PyTorch's implementation.</p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/stable-diffusion-1-5-how-i-optimized-it-a-worklog-09aa56498cf2" class="card" target="_blank">
-                    <span class="card-tag">Machine Learning</span>
-                    <h3>Stable Diffusion 1.5: How I Optimized It</h3>
-                    <p>A detailed worklog on optimizing Stable Diffusion 1.5 for performance.</p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/propositional-logic-25abd05e5aac" class="card" target="_blank">
-                    <span class="card-tag">Logic</span>
-                    <h3>Propositional Logic</h3>
-                    <p>A deep dive into the fundamental building blocks of mathematical logic.</p>
-                </a>
-                <a href="https://medium.com/@dcbaslani/raw-dawgging-linear-regression-4a533e1f8ad2" class="card" target="_blank">
-                    <span class="card-tag">Machine Learning</span>
-                    <h3>Raw Dawgging Linear Regression</h3>
-                    <p>Understanding Linear Regression by building it from the ground up.</p>
-                </a>
+${blogCards}
+${externalPosts}
             </div>
         </section>
     </main>
 
-    <footer class="animate-enter delay-4">
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
@@ -219,11 +279,7 @@ const indexHtmlTemplate = `<!DOCTYPE html>
     <script>
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -243,14 +299,80 @@ const indexHtmlTemplate = `<!DOCTYPE html>
 fs.writeFileSync(path.join(BLOG_DIR, 'index.html'), indexHtmlTemplate);
 console.log('Created blog/index.html');
 
-// 2. Generate blog/[slug]/index.html for all posts
-const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
+// ============================================================
+// 2. Generate blog/[slug]/index.html for all posts (with SSR!)
+// ============================================================
+const blogPostTemplate = (slug, post, renderedHtml, readMin) => {
+    const title = post.title.replaceAll('—', '; ');
+    const postUrl = `${SITE_URL}/blog/${slug}/`;
+    const dateFormatted = formatDate(post.date);
+
+    // JSON-LD for individual blog post
+    const postJsonLd = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "description": post.description,
+        "datePublished": isoDate(post.date),
+        "dateModified": isoDate(post.date),
+        "author": {
+            "@type": "Person",
+            "name": "Darshan Baslani",
+            "url": SITE_URL
+        },
+        "publisher": {
+            "@type": "Person",
+            "name": "Darshan Baslani",
+            "url": SITE_URL
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": postUrl
+        },
+        "keywords": post.tag,
+        "wordCount": renderedHtml.split(/\s+/).length,
+        "timeRequired": `PT${readMin}M`
+    }, null, 2);
+
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="${post.description}">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="${postUrl}">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${post.description}">
+    <meta property="og:url" content="${postUrl}">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="${isoDate(post.date)}">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="${post.tag}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${post.description}">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+${postJsonLd}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -260,10 +382,9 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -325,14 +446,7 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -367,7 +481,7 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -380,51 +494,42 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">${post.tag}</span>
+                    <time class="blog-date" datetime="${post.date}" itemprop="datePublished">${dateFormatted}</time>
+                    <span class="blog-readtime">&middot; ${readMin} min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+${renderedHtml}
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -437,84 +542,72 @@ const blogPostTemplate = (slug, title) => `<!DOCTYPE html>
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = \`${slug}\`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(\`/blogs/\${SLUG}.md\`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\\]\\((?:\\.\\/|\\.\\.\\/)?([a-zA-Z0-9_-]+)\\.md\\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>
 </html>`;
+};
 
 for (const post of manifest.posts) {
     const postDir = path.join(BLOG_DIR, post.slug);
     if (!fs.existsSync(postDir)) {
         fs.mkdirSync(postDir, { recursive: true });
     }
+
+    // SSR: Read markdown, render to HTML at build time
+    const mdPath = path.join(BLOGS_DATA_DIR, `${post.slug}.md`);
+    let mdText = fs.readFileSync(mdPath, 'utf8');
+    mdText = mdText.replaceAll('—', '; ');
+    // Rewrite relative markdown links to point to the new /blog/slug/ URLs
+    mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
+
+    const renderedHtml = marked.parse(mdText);
+    const readMin = readingTime(mdText);
+
     const htmlPath = path.join(postDir, 'index.html');
-    fs.writeFileSync(htmlPath, blogPostTemplate(post.slug, post.title.replaceAll('—', '; ')));
-    console.log(`Generated blog/${post.slug}/index.html`);
+    fs.writeFileSync(htmlPath, blogPostTemplate(post.slug, post, renderedHtml, readMin));
+    console.log(`Generated blog/${post.slug}/index.html (SSR, ${readMin} min read)`);
 }
+
+// ============================================================
+// 3. Generate sitemap.xml
+// ============================================================
+const today = new Date().toISOString().split('T')[0];
+
+let sitemapUrls = `    <url>
+        <loc>${SITE_URL}/</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>`;
+
+for (const post of manifest.posts) {
+    sitemapUrls += `
+    <url>
+        <loc>${SITE_URL}/blog/${post.slug}/</loc>
+        <lastmod>${post.date}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+}
+
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls}
+</urlset>
+`;
+
+fs.writeFileSync(path.join(ROOT_DIR, 'sitemap.xml'), sitemap);
+console.log('Generated sitemap.xml');
+
+console.log('\n✅ All blog pages generated with SSR + SEO meta tags + sitemap');

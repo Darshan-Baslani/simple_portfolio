@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/cute-dsl-blog/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry">
+    <meta property="og:description" content="Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/cute-dsl-blog/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-04-19">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry">
+    <meta name="twitter:description" content="Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry",
+  "description": "Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.",
+  "datePublished": "2026-04-19",
+  "dateModified": "2026-04-19",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/cute-dsl-blog/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 1618,
+  "timeRequired": "PT9M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,217 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-04-19" itemprop="datePublished">April 19, 2026</time>
+                    <span class="blog-readtime">&middot; 9 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn&#39;t Even Cry</h1>
+<p>Welcome to the ultimate guide to <code>cute-dsl</code>! If you&#39;ve tinkered with CUDA programming and are curious about CUTLASS&#39;s CuTe but felt overwhelmed by the complex C++ templates, <code>cute-dsl</code> is your new best friend. It brings the power of CuTe&#39;s concepts; like Layouts, Tilers, and vectorized memory operations; straight into a familiar, Pythonic interface.</p>
+<p>In this blog, we&#39;ll dive into the basics, starting with simple APIs, building intuition around memory layouts with ASCII diagrams, and graduating to vectorized kernels.</p>
+<h2>The Essentials: <code>cute.kernel</code> and <code>cute.jit</code></h2>
+<p>At the core of <code>cute-dsl</code> are two crucial decorators:</p>
+<ul>
+<li><code>@cute.kernel</code>: This marks a Python function as a device kernel, meaning it will run natively on the GPU. It behaves similarly to PyTorch&#39;s Triton <code>@triton.jit</code> or Numba&#39;s <code>@cuda.jit</code>.</li>
+<li><code>@cute.jit</code>: This marks a host function that will compile and launch your device kernels. Think of it as the bridge between your standard Python code and your GPU parallel executions.</li>
+</ul>
+<h3>A Gentle Start: Hello, GPU</h3>
+<p>Let&#39;s look at the absolute simplest program you can write:</p>
+<pre><code class="language-python">import cutlass
+import cutlass.cute as cute
+
+@cute.kernel
+def hello_kernel():
+    # Fetch thread coordinates just like CUDA!
+    tidx, _, _ = cute.arch.thread_idx()
+    if tidx == 0:
+        cute.printf(&quot;hello from gpu&quot;)
+
+@cute.jit
+def hello_world():
+    cutlass.cuda.initialize_cuda_context()
+    hello_kernel().launch(grid=(1, 1, 1), block=(32, 1, 1))
+
+if __name__ == &quot;__main__&quot;:
+    compiled = cute.compile(hello_world)
+    compiled()
+</code></pre>
+<p>When you define <code>hello_kernel</code>, it gets compiled into PTX code behind the scenes. Inside it, we use <code>cute.arch.thread_idx()</code> ;  which returns <code>(threadIdx.x, threadIdx.y, threadIdx.z)</code>, just like in normal CUDA. We then launch it using standard <code>(grid, block)</code> dimensions inside a <code>@cute.jit</code>-compiled host function. Beautifully simple!</p>
+<h2>Demystifying Layouts</h2>
+<p>A <strong>Layout</strong> in <code>cute</code> is the fundamental building block of memory access. It dictates how a logical multi-dimensional coordinate maps to a 1D flat memory index.</p>
+<p>A Layout is parameterized by two things: <strong>Shape</strong> and <strong>Stride</strong>.</p>
+<p>Let&#39;s imagine an 8x8 matrix in <strong>Column-Major</strong> layout: <code>shape=(8, 8)</code> and <code>stride=(1, 8)</code>.</p>
+<p>The formula to convert a multi-dimensional coordinate to a flat memory index is: <code>index = row * stride[0] + col * stride[1]</code>. With stride <code>(1, 8)</code>, moving one step down a column (incrementing row) moves by 1 in memory, while moving one step across a row (incrementing column) jumps by 8.</p>
+<pre><code class="language-text">Logical 8x8 View (showing flat index)       Flat Memory (Column-Major)
++----+----+----+-----                       -----------
+|  0 |  8 | 16 | ...                        [0] -&gt; (row=0, col=0)
++----+----+----+-----                       [1] -&gt; (row=1, col=0)
+|  1 |  9 | 17 | ...                        [2] -&gt; (row=2, col=0)
++----+----+----+-----                       ...
+|  2 | 10 | 18 | ...                        [8] -&gt; (row=0, col=1)
++----+----+----+-----                       [9] -&gt; (row=1, col=1)
+</code></pre>
+<p>In <strong>Row-Major</strong> layout, the stride would be <code>(8, 1)</code> ;  meaning moving to the <em>next row</em> jumps by 8 in flat memory, while moving to the <em>next column</em> steps by just 1. So elements within the same row are contiguous in memory, which is the opposite of column-major.</p>
+<p>Layouts in <code>cute</code> can also be <strong>hierarchically nested</strong>. For example, a shape of <code>(2, (2, 4))</code> with stride <code>(1, (2, 4))</code> describes a 2-element outer dimension where each element contains a nested 2×4 sub-layout. This nesting lets you mathematically model complex memory access patterns like blocked or swizzled layouts ;  essential for high-performance GPU kernels.</p>
+<h2>Logical Divide vs Zipped Divide</h2>
+<p>When we want to transfer data between different memory hierarchies (like Global Memory -&gt; Shared Memory -&gt; Registers), we often do so in small parallelized blocks called <strong>Tiles</strong>. </p>
+<p>Let&#39;s take our 8x8 matrix layout <code>L = (8, 8)</code> and divide it using a <strong>Tiler</strong> of size <code>(2, 4)</code>. A tiler dictates the shape of the blocks we want to chop our layout into.</p>
+<pre><code class="language-python">L = cute.make_layout(shape=(8, 8), stride=(1, 8))
+tiler = (2, 4)
+
+L_logical = cute.logical_divide(L, tiler)
+L_zipped = cute.zipped_divide(L, tiler)
+</code></pre>
+<h3>Logical Divide</h3>
+<p>A <strong>Logical Divide</strong> splits each mode independently into <code>(tile_size, num_tiles)</code>:</p>
+<ul>
+<li>Rows (size 8) ÷ Tiler Row (2) → <code>(2, 4)</code> meaning &quot;2 rows per tile, 4 tile-rows&quot;</li>
+<li>Cols (size 8) ÷ Tiler Col (4) → <code>(4, 2)</code> meaning &quot;4 cols per tile, 2 tile-cols&quot;</li>
+</ul>
+<p>The combined output shape becomes: <code>((2, 4), (4, 2))</code>.</p>
+<pre><code class="language-text">Logical Divide: ((2, 4), (4, 2))
+
+   Mode 0 (Rows):  (row_within_tile, which_tile_row)  =  (2, 4)
+   Mode 1 (Cols):  (col_within_tile, which_tile_col)  =  (4, 2)
+
+Indexing requires specifying all 4 sub-dimensions:
+   Data[ (row_in_tile, tile_row_idx), (col_in_tile, tile_col_idx) ]
+
+The row and column modes remain separate ;  they are NOT grouped
+by &quot;tile&quot; vs &quot;grid&quot;. This makes it awkward to grab a full 2x4 tile.
+</code></pre>
+<h3>Zipped Divide</h3>
+<p>A <strong>Zipped Divide</strong> first performs a logical divide, then <em>re-groups</em> the results: it bundles all the &quot;within-tile&quot; dimensions into Mode 0 and all the &quot;which-tile&quot; dimensions into Mode 1.</p>
+<ul>
+<li><strong>Mode 0 (Tile)</strong>: <code>(2, 4)</code> ;  the shape of one tile (rows-in-tile, cols-in-tile)</li>
+<li><strong>Mode 1 (Grid)</strong>: <code>(4, 2)</code> ;  how many tiles (tile-rows, tile-cols)</li>
+</ul>
+<p>The numbers look identical to logical divide ;  <code>((2, 4), (4, 2))</code> ;  but the <em>meaning</em> of each mode has changed completely!</p>
+<pre><code class="language-text">Zipped Divide: Original (8, 8) ÷ Tiler (2, 4)
+
+Mode 0 = One Tile (2, 4):            Mode 1 = Grid of Tiles (4, 2):
+
+  col 0  col 1  col 2  col 3           tile_row  tile_col
+  +------+------+------+------+        +-------+-------+
+  |      |      |      |      |  row0  | (0,0) | (0,1) |
+  +------+------+------+------+        +-------+-------+
+  |      |      |      |      |  row1  | (1,0) | (1,1) |
+  +------+------+------+------+        +-------+-------+
+  A single 2x4 tile                    | (2,0) | (2,1) |
+                                       +-------+-------+
+                                       | (3,0) | (3,1) |
+                                       +-------+-------+
+                                       4×2 grid = 8 tiles total
+</code></pre>
+<h3>Why is Zipped Divide Preferred?</h3>
+<p>Zipped divide gives you a clean two-level hierarchy: <code>(Tile_Coordinate, Grid_Coordinate)</code>.</p>
+<p>When doing vectorized loads or memory copies, you typically want to grab a <em>whole tile</em> at a specific <em>grid position</em>. Compare the two approaches:</p>
+<ul>
+<li><strong>Logical Divide</strong>: To grab a tile you must index 4 sub-dimensions separately: <code>Data[(row_in_tile, tile_row_idx), (col_in_tile, tile_col_idx)]</code> ;  cumbersome and error-prone.</li>
+<li><strong>Zipped Divide</strong>: The layout already mirrors <code>(Tile, Grid)</code>, so you cleanly index: <code>Data[tile_coord, grid_coord]</code> ;  much simpler!</li>
+</ul>
+<p>This is why <code>zipped_divide</code> is the go-to operation for partitioning data across threads and memory hierarchies in CuTe kernels.</p>
+<h2>Anatomy of the Naive Elementwise Add Kernel</h2>
+<p>Let&#39;s see how indexing looks across different paradigms for a simple elementwise <code>C = A + B</code> kernel.</p>
+<pre><code class="language-python">@cute.kernel
+def naive_elementwise_add_kernel(A: cute.Tensor, B: cute.Tensor, C: cute.Tensor):
+    tidx, _, _ = cute.arch.thread_idx()
+    bidx, _, _ = cute.arch.block_idx()
+    bdim, _, _ = cute.arch.block_dim()
+
+    idx = bidx * bdim + tidx
+    
+    m, n = A.shape
+    ni = idx % n
+    mi = idx // n
+
+    C[mi, ni] = A[mi, ni] + B[mi, ni]
+</code></pre>
+<h3>The Indexing Difference</h3>
+<ul>
+<li><strong>PyTorch</strong>: Fully abstracted ;  you simply write <code>C = A + B</code> and PyTorch handles parallelism, memory layout, and iteration internally.</li>
+<li><strong>CUDA</strong>: GPU memory is flat 1D, so you typically work with raw pointers: <code>C[idx] = A[idx] + B[idx]</code>. If you need multi-dimensional indexing, you must manually compute row/column indices from the flat thread index and handle bounds checking yourself.</li>
+<li><strong>cute-dsl</strong>: The best of both worlds! Each thread computes a flat <code>idx</code>, then uses simple arithmetic (<code>idx % n</code> and <code>idx // n</code>) to recover 2D coordinates <code>(mi, ni)</code>. You then index with clean multi-dimensional syntax: <code>A[mi, ni]</code>. Under the hood, CuTe&#39;s Layout algebra automatically translates these logical coordinates to the correct physical memory offset ;  no raw pointer math needed!</li>
+</ul>
+<h2>Graduating to Vectorized Execution</h2>
+<p>GPUs love vectorized operations. Why fetch one float per thread when you can comfortably fetch four? Vectorized pipelines saturate memory bandwidth efficiently.
+To vectorize seamlessly, we systematically reshape our datasets using ;  you guessed it ;  <strong>tilers</strong>!</p>
+<pre><code class="language-python">@cute.jit 
+def vectorized_add(A: cute.Tensor, B: cute.Tensor, C: cute.Tensor):
+    # Defining a tile of 4 elements wide
+    tiler = (1, 4)
+    # Zipping it chunks our layout!
+    A = cute.zipped_divide(A, tiler)
+    B = cute.zipped_divide(B, tiler)
+    ...
+</code></pre>
+<p>By applying <code>zipped_divide</code>, our flat element dimensions transform into chunks of <code>(1, 4)</code>. 
+The <code>A</code>, <code>B</code>, and <code>C</code> layouts effectively represent shape <code>((1, 4), (M, N/4))</code>:</p>
+<ul>
+<li><strong>Mode 0</strong>: <code>(1, 4)</code> is our Inner Tile footprint (yielding 4 elements horizontally).</li>
+<li><strong>Mode 1</strong>: <code>(M, N/4)</code> is our Outer Grid footprint. Each coordinate in the grid points to a vector chunk!</li>
+</ul>
+<p>Let&#39;s witness the magic in the vectorized kernel:</p>
+<pre><code class="language-python">@cute.kernel
+def vectorized_add_kernel(A, B, C):
+    tidx, _, _ = cute.arch.thread_idx()
+    bidx, _, _ = cute.arch.block_idx()
+    bdim, _, _ = cute.arch.block_dim()
+
+    idx = bidx * bdim + tidx
+
+    # Retrieve boundaries from Mode 1 (the grid)
+    m, n = A.shape[1]
+    ni = idx % n
+    mi = idx // n
+
+    # MAGIC HAPPENS HERE
+    a_val = A[(None, (mi, ni))].load()
+    b_val = B[(None, (mi, ni))].load()
+
+    C[(None, (mi, ni))] = a_val + b_val
+</code></pre>
+<h3>Breaking down <code>A[(None, (mi, ni))]</code></h3>
+<p>This is why we advocated for Zipped Divide earlier! After <code>zipped_divide</code>, <code>A</code> expects coordinates in the format <code>[TileCoord, GridCoord]</code>:</p>
+<ul>
+<li><strong><code>None</code> for TileCoord</strong>: In CuTe DSL, <code>None</code> works like Python&#39;s <code>:</code> slice ;  it means &quot;select everything along this mode.&quot; Since our tile shape is <code>(1, 4)</code>, passing <code>None</code> selects all 4 elements of the tile. This gives us back a small tensor (a 4-element vector) rather than a single scalar.</li>
+<li><strong><code>(mi, ni)</code> for GridCoord</strong>: This pinpoints <em>which</em> tile in the <code>(M, N/4)</code> grid this thread should access.</li>
+<li><strong><code>.load()</code></strong>: This tells the compiler to emit a hardware-level <strong>vectorized memory load</strong> (e.g., <code>ld.global.v4</code>), fetching all 4 elements in a single memory transaction directly into registers ;  far more efficient than 4 separate scalar loads!</li>
+</ul>
+<h3>Conclusion</h3>
+<p>By leveraging Layouts, divide operations, and tilers, <code>cute-dsl</code> abstracts away the complex C++ template machinery of raw CUTLASS while preserving its performance. You get optimized layout mapping, zero raw pointer math, and vectorized register loading ;  all with syntax that feels like writing everyday PyTorch or NumPy code.</p>
+<p>Time to fire up your GPUs!</p>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +405,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `cute-dsl-blog`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>

@@ -4,7 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WGMMA ; Warpgroup MMA — Darshan Baslani</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="description" content="How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/09_wgmma/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="WGMMA ; Warpgroup MMA">
+    <meta property="og:description" content="How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/09_wgmma/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-04-04">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="CUDA">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="WGMMA ; Warpgroup MMA">
+    <meta name="twitter:description" content="How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "WGMMA ; Warpgroup MMA",
+  "description": "How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.",
+  "datePublished": "2026-04-04",
+  "dateModified": "2026-04-04",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/09_wgmma/"
+  },
+  "keywords": "CUDA",
+  "wordCount": 570,
+  "timeRequired": "PT3M"
+}
+    </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
     <script>
@@ -14,10 +70,9 @@
         gtag('config', 'G-7S3KXBK6D2');
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
     <style>
         :root {
@@ -79,14 +134,7 @@
         .blog-back:hover { opacity: 0.7; }
         .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
         .blog-date { font-size: 0.85rem; color: var(--text-muted); }
-
-        .blog-loading, .blog-error { text-align: center; padding: 6rem 2rem; }
-        .blog-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .blog-error h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .blog-error p { color: var(--text-muted); margin-bottom: 1.5rem; }
-        .blog-error a { color: var(--accent); }
-        .blog-error a:hover { text-decoration: underline; }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
 
         .blog-content { margin-bottom: 4rem; }
         .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
@@ -121,7 +169,7 @@
 <body>
     <header>
         <div class="container">
-            <nav>
+            <nav aria-label="Main navigation">
                 <div class="logo"><a href="/">Darshan Baslani</a></div>
                 <div class="nav-links">
                     <a href="/#about">About</a>
@@ -134,51 +182,103 @@
     </header>
 
     <main class="container">
-        <div id="blog-loading" class="blog-loading">
-            <div class="spinner"></div>
-            <p>Loading post...</p>
-        </div>
-
-        <div id="blog-error" class="blog-error" style="display: none;">
-            <h2>Post not found</h2>
-            <p>The blog post you're looking for doesn't exist or has been removed.</p>
-            <a href="/blog/">&larr; Back to all posts</a>
-        </div>
-
-        <article id="blog-article" style="display: none;">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
             <div class="blog-meta">
                 <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
                 <div>
-                    <span id="blog-tag" class="blog-tag"></span>
-                    <span id="blog-date" class="blog-date"></span>
+                    <span class="blog-tag" itemprop="keywords">CUDA</span>
+                    <time class="blog-date" datetime="2026-04-04" itemprop="datePublished">April 4, 2026</time>
+                    <span class="blog-readtime">&middot; 3 min read</span>
                 </div>
             </div>
-            <div id="blog-content" class="blog-content"></div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>09. WGMMA (Warpgroup MMA)</h1>
+<p><strong>Difficulty:</strong> Advanced
+<strong>Prerequisites:</strong> Tutorial 06: Hello, MMA, Tutorial 08: The TMA Revolution</p>
+<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<p>Single warps are too small. We need 128 threads driving the Tensor Core together.
+In previous generations, threads had to load memory from shared memory into their own registers before they could perform an MMA (Matrix Multiply Accumulate). This creates a massive bottleneck: the register file gets saturated, and the <code>ldmatrix</code> instructions waste precious clock cycles. We need a way to feed the Tensor Core directly from the shared memory staging area where the TMA forklift just dropped our data.</p>
+<h2>2. The Mental Model (The Visual)</h2>
+<p>WGMMA is the <strong>Heavy Industrial Press</strong>. Unlike a standard press where each worker loads their own tray, the WGMMA press reads directly from the forklift&#39;s delivery zone.</p>
+<pre><code class="language-text">Single-Warp MMA (SM80/SM89):
+  smem ──(ldmatrix)──▶ registers ──(mma.sync)──▶ accumulators
+
+WGMMA (SM90):
+  smem ──(wgmma descriptor)────────────────────▶ accumulators
+           (128 threads coordinate)
+</code></pre>
+<p>And to make things even more efficient, we have <strong>TMA Multicast</strong> ;  the forklift driver shouting &quot;who else needs this?&quot; and dropping one pallet into multiple CTA factories at once:</p>
+<pre><code class="language-text">  Global Memory
+       │ (TMA Forklift reads once)
+       ▼
+  Cluster Broadcast Network
+    ┌──┴──┐
+    ▼     ▼
+  smem  smem    (Delivered to multiple CTA factories simultaneously)
+  CTA0  CTA1
+</code></pre>
+<h2>3. The Solution (The Code)</h2>
+<p>Here is how you define a WGMMA instruction using CuTe:</p>
+<pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
+#include &lt;cute/arch/mma_sm90.hpp&gt;
+#include &lt;cute/atom/mma_traits_sm90_gmma.hpp&gt;
+#include &lt;cute/atom/mma_atom.hpp&gt;
+
+using namespace cute;
+
+void example() {
+    // 1. Define the Heavy Industrial Press (WGMMA)
+    // 64x64x16 atom. F32 accumulators, F16 inputs. 
+    // SS = both A and B are read directly from Shared Memory.
+    // GMMA::Major::K means the K dimension is contiguous (TN layout).
+    using WGMMA_Atom = SM90_64x64x16_F32F16F16_SS&lt;GMMA::Major::K, GMMA::Major::K&gt;;
+    
+    // 2. Build the factory floor plan for the 4-warp crew
+    auto tiled_mma = make_tiled_mma(WGMMA_Atom{});
+    
+    // 3. Assume smem_A and smem_B are descriptors to our shared memory
+    // (In reality, you would build these using make_smdest_ptr)
+    // auto frag_A = ... 
+    // auto frag_B = ...
+    // auto accum  = ...
+    
+    // 4. Press the button! (Requires exactly 128 threads)
+    // gemm(tiled_mma, frag_A, frag_B, accum);
+}
+</code></pre>
+<h2>4. Step-by-Step Explanation</h2>
+<p>Line 14: <code>SM90_64x64x16_F32F16F16_SS&lt;...&gt;</code> defines our specific <code>WGMMA</code> operation. It calculates a 64x64x16 matrix multiply. Crucially, the <code>_SS</code> suffix means both A and B operands will be sourced directly from Shared Memory descriptors, not from registers. The template parameters <code>&lt;GMMA::Major::K, GMMA::Major::K&gt;</code> indicate that both A and B have K as their fast-moving contiguous dimension.</p>
+<p>Line 17: <code>make_tiled_mma</code> binds the instruction to a <code>Warpgroup</code>. CuTe knows that this SM90 atom requires exactly 128 threads (4 warps) and configures the <code>TiledMMA</code> layout automatically to coordinate them.</p>
+<p>Line 26: <code>gemm(...)</code> dispatches the asynchronous <code>wgmma</code> instruction to the hardware. All 128 threads must participate in this call.</p>
+<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<p>Analogy: Think of the <code>Warpgroup</code> as a synchronized crew of 4 warps working together as a single unit, and <code>SM90_WGMMA</code> as the Heavy Industrial Press. It takes inputs directly from the forklift&#39;s delivery zone (<code>smem</code> desc) rather than personal trays. <code>tma_multicast</code> is the forklift driver shouting &quot;who else needs this?&quot;, delivering one pallet to multiple factories simultaneously.</p>
+<p>Hardware Note: On Hopper (SM90), WGMMA requires exactly 128 threads. You cannot launch a warpgroup MMA with a single warp; it is a collaborative operation across 4 warps. TMA Multicast requires Threadblock Clusters ;  you can only multicast a TMA load to CTAs that are part of the same hardware cluster.</p>
+
+            </div>
         </article>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
         <div class="container" id="contact">
             <p>You can reach me out at</p>
-            <div class="social-links">
-                <a href="mailto:dcbaslani@gmail.com">Email</a>
-                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/">LinkedIn</a>
-                <a href="https://twitter.com/neuronfitting">Twitter</a>
-                <a href="https://github.com/Darshan-Baslani">GitHub</a>
-            </div>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
             <br>
             <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            htmlElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') toggleButton.textContent = '☀️';
-        }
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
         toggleButton.addEventListener('click', () => {
             if (htmlElement.getAttribute('data-theme') === 'dark') {
                 htmlElement.setAttribute('data-theme', 'light');
@@ -191,73 +291,10 @@
             }
         });
 
-        // Hardcoded slug to avoid parsing it from URL
-        const SLUG = `09_wgmma`;
-
-        (async function () {
-            const loadingEl = document.getElementById('blog-loading');
-            const errorEl = document.getElementById('blog-error');
-            const articleEl = document.getElementById('blog-article');
-            const contentEl = document.getElementById('blog-content');
-            const tagEl = document.getElementById('blog-tag');
-            const dateEl = document.getElementById('blog-date');
-
-            function showError() {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-            }
-
-            try {
-                // Fetch manifest to get metadata
-                const manifestRes = await fetch('/blogs/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const post = manifest.posts.find(p => p.slug === SLUG);
-                if (!post) {
-                    showError();
-                    return;
-                }
-
-                // Fetch the markdown file
-                const mdRes = await fetch(`/blogs/${SLUG}.md`);
-                if (!mdRes.ok) {
-                    showError();
-                    return;
-                }
-                const mdTextRaw = await mdRes.text();
-                let mdText = mdTextRaw.replaceAll('—', '; ');
-                
-                // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-                mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
-
-                // Configure marked
-                marked.setOptions({ gfm: true, breaks: false });
-
-                // Render markdown
-                contentEl.innerHTML = marked.parse(mdText);
-                contentEl.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // Fill metadata
-                tagEl.textContent = post.tag;
-                const dateObj = new Date(post.date + 'T00:00:00');
-                dateEl.textContent = dateObj.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                // Show article
-                loadingEl.style.display = 'none';
-                articleEl.style.display = 'block';
-
-            } catch (err) {
-                console.error('Failed to load blog:', err);
-                showError();
-            }
-        })();
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
     </script>
     <script src="/trackers.js"></script>
 </body>
