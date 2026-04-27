@@ -71,7 +71,12 @@ const blogCards = manifest.posts.slice().reverse().map(post => {
 }).join('\n');
 
 // Add the external Medium posts that aren't in manifest
-const externalPosts = `                <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57" class="card" target="_blank" rel="noopener">
+const externalPosts = `                <a href="https://medium.com/@dcbaslani/my-2-cents-on-doing-hard-things-9af575ae867b" class="card" target="_blank" rel="noopener">
+                    <span class="card-tag">Life</span>
+                    <h3>My 2 Cents on Doing Hard Things</h3>
+                    <p>Reflections on why hard things are worth doing and how to keep going when it gets tough.</p>
+                </a>
+                <a href="https://medium.com/@dcbaslani/beating-pytorch-writing-a-faster-softmax-kernel-in-cuda-0d0a237cda57" class="card" target="_blank" rel="noopener">
                     <span class="card-tag">CUDA</span>
                     <h3>Beating PyTorch: Writing a Faster Softmax Kernel in CUDA</h3>
                     <p>Writing a faster Softmax kernel in CUDA than PyTorch's implementation.</p>
