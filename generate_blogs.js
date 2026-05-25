@@ -25,7 +25,19 @@ if (fs.existsSync(imagesSrc)) {
 }
 
 // Configure marked for SSR
-marked.setOptions({ gfm: true, breaks: false });
+const renderer = new marked.Renderer();
+
+// Custom renderer: convert ```mermaid blocks to <pre class="mermaid"> for Mermaid.js
+const originalCode = renderer.code.bind(renderer);
+renderer.code = function({ text, lang, escaped }) {
+    if (lang === 'mermaid') {
+        // Mermaid.js expects <pre class="mermaid">content</pre>
+        return `<pre class="mermaid">${text}</pre>\n`;
+    }
+    return originalCode({ text, lang, escaped });
+};
+
+marked.setOptions({ gfm: true, breaks: false, renderer });
 
 // Helper: format date for display
 function formatDate(dateStr) {
@@ -61,6 +73,72 @@ function stripMarkdown(md) {
 // Helper: escape HTML in JSON-LD strings
 function escJsonLd(str) {
     return str.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+// Helper: pre-process LaTeX math for KaTeX auto-render
+// Protects math expressions from being mangled by the markdown parser
+function preprocessMath(md) {
+    // Protect display math ($$...$$) — replace with placeholder
+    let counter = 0;
+    const mathBlocks = [];
+
+    // Display math (must come before inline)
+    md = md.replace(/\$\$([\s\S]+?)\$\$/g, (match, content) => {
+        const id = `%%MATH_DISPLAY_${counter++}%%`;
+        mathBlocks.push({ id, content: content.trim(), display: true });
+        return id;
+    });
+
+    // Inline math ($...$) — but not \$ escaped or $$ 
+    md = md.replace(/(?<!\\)\$(?!\$)(.+?)(?<!\\)\$/g, (match, content) => {
+        const id = `%%MATH_INLINE_${counter++}%%`;
+        mathBlocks.push({ id, content: content.trim(), display: false });
+        return id;
+    });
+
+    return { md, mathBlocks };
+}
+
+function restoreMath(html, mathBlocks) {
+    for (const block of mathBlocks) {
+        const escaped = block.content
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        if (block.display) {
+            // Use replacer function to avoid String.replace() interpreting $$ as special pattern
+            html = html.replace(block.id, () => '<div class="math-display">$$' + escaped + '$$</div>');
+        } else {
+            html = html.replace(block.id, () => '<span class="math-inline">$' + escaped + '$</span>');
+        }
+    }
+    return html;
+}
+
+// Helper: post-process GitHub-style alerts in blockquotes
+function processAlerts(html) {
+    const alertTypes = {
+        'NOTE': { icon: 'ℹ️', color: '#58a6ff', bgLight: '#f0f7ff', bgDark: '#0d1b2a' },
+        'TIP': { icon: '💡', color: '#3fb950', bgLight: '#f0fff0', bgDark: '#0d2818' },
+        'IMPORTANT': { icon: '📌', color: '#a371f7', bgLight: '#f5f0ff', bgDark: '#1a0d2e' },
+        'WARNING': { icon: '⚠️', color: '#d29922', bgLight: '#fff8e6', bgDark: '#2e1f0d' },
+        'CAUTION': { icon: '🔴', color: '#f85149', bgLight: '#fff0f0', bgDark: '#2e0d0d' }
+    };
+
+    // Match blockquotes that start with [!TYPE]
+    for (const [type, config] of Object.entries(alertTypes)) {
+        const regex = new RegExp(
+            `<blockquote>\\s*<p>\\[!${type}\\]\\s*(?:<br>)?\\n?([\\s\\S]*?)</p>\\s*</blockquote>`,
+            'gi'
+        );
+        html = html.replace(regex, (match, content) => {
+            return `<div class="gh-alert gh-alert-${type.toLowerCase()}">
+<p class="gh-alert-title"><span class="gh-alert-icon">${config.icon}</span> ${type.charAt(0) + type.slice(1).toLowerCase()}</p>
+<p>${content.trim()}</p>
+</div>`;
+        });
+    }
+    return html;
 }
 
 // ============================================================
@@ -399,6 +477,9 @@ ${postJsonLd}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
+
     <style>
         :root {
             --bg-color: #fcfbf9;
@@ -483,6 +564,30 @@ ${postJsonLd}
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
         .blog-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1.5rem 0; }
 
+        /* Mermaid diagrams */
+        .blog-content pre.mermaid { background: transparent; border: none; text-align: center; padding: 1rem 0; overflow-x: auto; }
+
+        /* KaTeX math */
+        .math-display { margin: 1.5rem 0; text-align: center; overflow-x: auto; }
+        .math-inline { /* inline, no extra styling needed */ }
+        .katex-display { margin: 0; }
+
+        /* GitHub-style alerts */
+        .gh-alert { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 0.75rem 1.25rem; margin: 1.5rem 0; }
+        .gh-alert-title { font-weight: 700; margin-bottom: 0.25rem !important; display: flex; align-items: center; gap: 0.4rem; }
+        .gh-alert-icon { font-size: 1.1em; }
+        .gh-alert-note { border-color: #58a6ff; background: #f0f7ff; }
+        .gh-alert-tip { border-color: #3fb950; background: #f0fff0; }
+        .gh-alert-important { border-color: #a371f7; background: #f5f0ff; }
+        .gh-alert-warning { border-color: #d29922; background: #fff8e6; }
+        .gh-alert-caution { border-color: #f85149; background: #fff0f0; }
+        [data-theme="dark"] .gh-alert-note { background: #0d1b2a; }
+        [data-theme="dark"] .gh-alert-tip { background: #0d2818; }
+        [data-theme="dark"] .gh-alert-important { background: #1a0d2e; }
+        [data-theme="dark"] .gh-alert-warning { background: #2e1f0d; }
+        [data-theme="dark"] .gh-alert-caution { background: #2e0d0d; }
+        .gh-alert p { color: var(--text-main) !important; }
+
         @media (max-width: 768px) {
             .blog-content h1 { font-size: 1.7rem; }
             .blog-content h2 { font-size: 1.3rem; }
@@ -538,6 +643,25 @@ ${renderedHtml}
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <!-- KaTeX -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.getElementById('blog-content'), {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });"></script>
+
+    <!-- Mermaid -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+    </script>
+
     <script>
         // Theme toggle — icon init based on already-applied theme (set in <head>)
         const toggleButton = document.getElementById('theme-toggle');
@@ -555,9 +679,11 @@ ${renderedHtml}
             }
         });
 
-        // Syntax highlighting for pre-rendered code blocks
+        // Syntax highlighting — skip mermaid blocks
         document.querySelectorAll('pre code').forEach(block => {
-            hljs.highlightElement(block);
+            if (!block.classList.contains('language-mermaid')) {
+                hljs.highlightElement(block);
+            }
         });
     </script>
     <script src="/trackers.js"></script>
@@ -578,7 +704,15 @@ for (const post of manifest.posts) {
     // Rewrite relative markdown links to point to the new /blog/slug/ URLs
     mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
 
-    const renderedHtml = marked.parse(mdText);
+    // Pre-process: protect math expressions from markdown parser
+    const { md: processedMd, mathBlocks } = preprocessMath(mdText);
+
+    let renderedHtml = marked.parse(processedMd);
+
+    // Post-process: restore math expressions and convert GitHub alerts
+    renderedHtml = restoreMath(renderedHtml, mathBlocks);
+    renderedHtml = processAlerts(renderedHtml);
+
     const readMin = readingTime(mdText);
 
     const htmlPath = path.join(postDir, 'index.html');
