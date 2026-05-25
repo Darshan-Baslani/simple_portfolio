@@ -57,8 +57,8 @@
     "@id": "https://darshanbaslani.com/blog/qwen_3.5/"
   },
   "keywords": "Triton",
-  "wordCount": 3617,
-  "timeRequired": "PT19M"
+  "wordCount": 3524,
+  "timeRequired": "PT18M"
 }
     </script>
 
@@ -215,7 +215,7 @@
                 <div>
                     <span class="blog-tag" itemprop="keywords">Triton</span>
                     <time class="blog-date" datetime="2026-05-25" itemprop="datePublished">May 25, 2026</time>
-                    <span class="blog-readtime">&middot; 19 min read</span>
+                    <span class="blog-readtime">&middot; 18 min read</span>
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
@@ -295,12 +295,7 @@ Layer 31: Full Attention (SDPA)
         GPU2 --> PERF
     end
 
-    DEV -->|"modal run"| PERF
-
-    style GPU1 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style GPU2 fill:#0f3460,stroke:#16213e,color:#fff
-    style DEV fill:#16213e,stroke:#e94560,color:#ccc
-    style PERF fill:#16213e,stroke:#0f3460,color:#ccc</pre>
+    DEV -->|"modal run"| PERF</pre>
 <table>
 <thead>
 <tr>
@@ -395,19 +390,7 @@ aten::to           →  15 µs  (dtype cast)
         RSQRT -->|"Write to HBM"| HBM5["HBM"]
         HBM5 -->|"Read from HBM"| MUL["aten::mul (weight)"]
         MUL -->|"Write to HBM"| HBM6["HBM"]
-    end
-
-    style HBM1 fill:#e94560,color:#fff
-    style HBM2 fill:#e94560,color:#fff
-    style HBM3 fill:#e94560,color:#fff
-    style HBM4 fill:#e94560,color:#fff
-    style HBM5 fill:#e94560,color:#fff
-    style HBM6 fill:#e94560,color:#fff
-    style ADD fill:#1a1a2e,color:#fff
-    style POW fill:#1a1a2e,color:#fff
-    style MEAN fill:#1a1a2e,color:#fff
-    style RSQRT fill:#1a1a2e,color:#fff
-    style MUL fill:#1a1a2e,color:#fff</pre>
+    end</pre>
 <p>That means <strong>six HBM round-trips for a single normalization</strong>. On the B200, each round-trip for a 4096-dim hidden state costs very little time in raw transfer, but the launch overhead for each tiny kernel is 20-50 µs. Multiply that by 32 layers and 2 norms per layer, and you get <strong>64 normalization passes per decode step</strong>.</p>
 <p>Essentially, PyTorch&#39;s module abstraction (where each layer/operation is a self-contained forward pass) forces separate kernel launches and intermediate memory writes, which kills performance on the GPU.</p>
 <hr>
@@ -474,14 +457,7 @@ def _fused_zero_centered_rmsnorm(
         ADD_F --> NORM_F["Normalize in FP32"]
         NORM_F --> WEIGHT_F["Apply (1 + W)"]
         WEIGHT_F --> WRITE["Write Y, S to HBM"]
-    end
-
-    style READ fill:#0f3460,color:#fff
-    style SRAM fill:#16213e,stroke:#e94560,stroke-width:3,color:#fff
-    style ADD_F fill:#1a1a2e,color:#fff
-    style NORM_F fill:#1a1a2e,color:#fff
-    style WEIGHT_F fill:#1a1a2e,color:#fff
-    style WRITE fill:#0f3460,color:#fff</pre>
+    end</pre>
 <table>
 <thead>
 <tr>
@@ -572,11 +548,7 @@ def _fused_zero_centered_rmsnorm(
         V2["v_t"] --> DELTA["δ_t = β·(v_t - k_t @ H_t)"]
         STATE --> DELTA
         DELTA --> UPDATE
-    end
-
-    style STATE fill:#e94560,stroke:#fff,color:#fff
-    style K1 fill:#0f3460,color:#fff
-    style V1 fill:#0f3460,color:#fff</pre>
+    end</pre>
 <p>The recurrence relation for each token:</p>
 <p><div class="math-display">$$H_{t+1} = \gamma_t \cdot H_t + k_t \otimes \beta_t \cdot (v_t - k_t^\top H_t)$$</div>
 <div class="math-display">$$o_t = q_t^\top \cdot H_{t+1}$$</div></p>
@@ -635,15 +607,7 @@ for i in range(total_sequence_length // chunk_size):
         PROCN --> SN["State H_N<br/>(written once)"]
     end
 
-    Phase1 -->|"WY data in HBM"| Phase2
-
-    style P1 fill:#0f3460,color:#fff
-    style S0 fill:#e94560,color:#fff
-    style SN fill:#e94560,color:#fff
-    style PROC0 fill:#16213e,color:#fff
-    style PROC1 fill:#16213e,color:#fff
-    style PROC2 fill:#16213e,color:#fff
-    style PROCN fill:#16213e,color:#fff</pre>
+    Phase1 -->|"WY data in HBM"| Phase2</pre>
 <h4>The WY Decomposition</h4>
 <p>The intra-chunk math uses the delta rule to formulate a lower-triangular system:</p>
 <p><div class="math-display">$$(I + N) \cdot X = \beta \cdot \left(\frac{V}{G} - K \cdot S_{\text{in}}^\top\right)$$</div></p>
@@ -945,7 +909,30 @@ def gdn_decode_kernel(...):
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+        mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+
+        // Store original diagram sources before first render
+        document.querySelectorAll('pre.mermaid').forEach((el, i) => {
+            el.setAttribute('data-mermaid-src', el.textContent);
+            el.setAttribute('data-mermaid-id', 'mermaid-' + i);
+        });
+
+        // Initial render
+        await mermaid.run();
+
+        // Expose re-render function for theme toggle
+        window.__reRenderMermaid = async function(theme) {
+            mermaid.initialize({ startOnLoad: false, theme: theme });
+            document.querySelectorAll('pre.mermaid').forEach(el => {
+                const src = el.getAttribute('data-mermaid-src');
+                if (src) {
+                    // Reset the element so mermaid re-processes it
+                    el.removeAttribute('data-processed');
+                    el.innerHTML = src;
+                }
+            });
+            await mermaid.run();
+        };
     </script>
 
     <script>
@@ -958,10 +945,12 @@ def gdn_decode_kernel(...):
                 htmlElement.setAttribute('data-theme', 'light');
                 localStorage.setItem('theme', 'light');
                 toggleButton.textContent = '🌙';
+                if (window.__reRenderMermaid) window.__reRenderMermaid('default');
             } else {
                 htmlElement.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
                 toggleButton.textContent = '☀️';
+                if (window.__reRenderMermaid) window.__reRenderMermaid('dark');
             }
         });
 

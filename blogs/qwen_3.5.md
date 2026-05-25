@@ -67,11 +67,6 @@ graph LR
     end
 
     DEV -->|"modal run"| PERF
-
-    style GPU1 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style GPU2 fill:#0f3460,stroke:#16213e,color:#fff
-    style DEV fill:#16213e,stroke:#e94560,color:#ccc
-    style PERF fill:#16213e,stroke:#0f3460,color:#ccc
 ```
 
 | Platform | Local Development | Cloud Benchmark |
@@ -139,18 +134,6 @@ graph TB
         HBM5 -->|"Read from HBM"| MUL["aten::mul (weight)"]
         MUL -->|"Write to HBM"| HBM6["HBM"]
     end
-
-    style HBM1 fill:#e94560,color:#fff
-    style HBM2 fill:#e94560,color:#fff
-    style HBM3 fill:#e94560,color:#fff
-    style HBM4 fill:#e94560,color:#fff
-    style HBM5 fill:#e94560,color:#fff
-    style HBM6 fill:#e94560,color:#fff
-    style ADD fill:#1a1a2e,color:#fff
-    style POW fill:#1a1a2e,color:#fff
-    style MEAN fill:#1a1a2e,color:#fff
-    style RSQRT fill:#1a1a2e,color:#fff
-    style MUL fill:#1a1a2e,color:#fff
 ```
 
 That means **six HBM round-trips for a single normalization**. On the B200, each round-trip for a 4096-dim hidden state costs very little time in raw transfer, but the launch overhead for each tiny kernel is 20-50 µs. Multiply that by 32 layers and 2 norms per layer, and you get **64 normalization passes per decode step**.
@@ -238,13 +221,6 @@ graph TB
         NORM_F --> WEIGHT_F["Apply (1 + W)"]
         WEIGHT_F --> WRITE["Write Y, S to HBM"]
     end
-
-    style READ fill:#0f3460,color:#fff
-    style SRAM fill:#16213e,stroke:#e94560,stroke-width:3,color:#fff
-    style ADD_F fill:#1a1a2e,color:#fff
-    style NORM_F fill:#1a1a2e,color:#fff
-    style WEIGHT_F fill:#1a1a2e,color:#fff
-    style WRITE fill:#0f3460,color:#fff
 ```
 
 | Metric | Before (PyTorch) | After (Fused Triton) |
@@ -318,10 +294,6 @@ graph LR
         STATE --> DELTA
         DELTA --> UPDATE
     end
-
-    style STATE fill:#e94560,stroke:#fff,color:#fff
-    style K1 fill:#0f3460,color:#fff
-    style V1 fill:#0f3460,color:#fff
 ```
 
 The recurrence relation for each token:
@@ -396,14 +368,6 @@ flowchart TB
     end
 
     Phase1 -->|"WY data in HBM"| Phase2
-
-    style P1 fill:#0f3460,color:#fff
-    style S0 fill:#e94560,color:#fff
-    style SN fill:#e94560,color:#fff
-    style PROC0 fill:#16213e,color:#fff
-    style PROC1 fill:#16213e,color:#fff
-    style PROC2 fill:#16213e,color:#fff
-    style PROCN fill:#16213e,color:#fff
 ```
 
 #### The WY Decomposition
