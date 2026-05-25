@@ -69,6 +69,13 @@
       "description": "Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.",
       "tag": "CUDA",
       "date": "2026-04-19"
+    },
+    {
+      "slug": "qwen_3.5",
+      "title": "Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5",
+      "description": "Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.",
+      "tag": "Triton",
+      "date": "2026-05-25"
     }
   ]
 }

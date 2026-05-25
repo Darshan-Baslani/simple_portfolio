@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5 — Darshan Baslani</title>
+    <meta name="description" content="Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.">
+    <meta name="author" content="Darshan Baslani">
+    <link rel="canonical" href="https://darshanbaslani.com/blog/qwen_3.5/">
+    <link rel="icon" type="image/webp" href="/icon.webp">
+
+    <!-- Early theme application to prevent FOUC -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5">
+    <meta property="og:description" content="Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.">
+    <meta property="og:url" content="https://darshanbaslani.com/blog/qwen_3.5/">
+    <meta property="og:site_name" content="Darshan Baslani">
+    <meta property="article:published_time" content="2026-05-25">
+    <meta property="article:author" content="Darshan Baslani">
+    <meta property="article:tag" content="Triton">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neuronfitting">
+    <meta name="twitter:title" content="Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5">
+    <meta name="twitter:description" content="Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5",
+  "description": "Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.",
+  "datePublished": "2026-05-25",
+  "dateModified": "2026-05-25",
+  "author": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Darshan Baslani",
+    "url": "https://darshanbaslani.com"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://darshanbaslani.com/blog/qwen_3.5/"
+  },
+  "keywords": "Triton",
+  "wordCount": 3593,
+  "timeRequired": "PT19M"
+}
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7S3KXBK6D2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-7S3KXBK6D2');
+    </script>
+
+    <!-- Async-load highlight.js CSS to avoid render-blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
+
+    <style>
+        :root {
+            --bg-color: #fcfbf9;
+            --text-main: #2d2d2d;
+            --text-muted: #6e6e6e;
+            --accent: #d4a373;
+            --highlight: #faedcd;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --card-bg: #ffffff;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            --tag-bg: #f0f0f0;
+            --tag-text: #666;
+            --border-color: #eee;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-main: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --card-bg: #1e1e1e;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --highlight: #b08968;
+            --tag-bg: #333;
+            --tag-text: #ccc;
+            --border-color: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        a { text-decoration: none; color: inherit; transition: color 0.3s ease; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+        
+        nav { padding: 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { font-size: 0.95rem; color: var(--text-muted); position: relative; transition: color 0.3s ease; }
+        .nav-links a::after { content: ''; position: absolute; width: 0; height: 1px; bottom: -4px; left: 0; background-color: var(--accent); transition: width 0.3s ease; }
+        .nav-links a:hover { color: var(--text-main); }
+        .nav-links a:hover::after { width: 100%; }
+        #theme-toggle { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.1rem; padding: 0.3rem; border-radius: 6px; transition: color 0.3s ease, background-color 0.3s ease; line-height: 1; }
+        #theme-toggle:hover { color: var(--text-main); background-color: var(--tag-bg); }
+
+        footer { padding: 4rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; transition: border-color 0.4s ease; }
+        .social-links { margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem; }
+        .social-links a { font-weight: 500; transition: color 0.3s ease; }
+        .social-links a:hover { color: var(--accent); }
+
+        .blog-meta { margin-top: 2rem; margin-bottom: 2rem; }
+        .blog-back { display: inline-block; color: var(--accent); font-size: 0.95rem; margin-bottom: 1.5rem; transition: opacity 0.3s ease; }
+        .blog-back:hover { opacity: 0.7; }
+        .blog-tag { display: inline-block; font-size: 0.75rem; background-color: var(--tag-bg); padding: 4px 8px; border-radius: 4px; color: var(--tag-text); margin-right: 0.75rem; }
+        .blog-date { font-size: 0.85rem; color: var(--text-muted); }
+        .blog-readtime { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem; }
+
+        .blog-content { margin-bottom: 4rem; }
+        .blog-content h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; }
+        .blog-content h2 { font-size: 1.6rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .blog-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; }
+        .blog-content p { font-size: 1.05rem; margin-bottom: 1.25rem; color: var(--text-main); }
+        .blog-content strong { font-weight: 700; }
+        .blog-content a { color: var(--accent); text-decoration: underline; }
+        .blog-content a:hover { opacity: 0.8; }
+        .blog-content ul, .blog-content ol { list-style: revert; margin-bottom: 1.25rem; padding-left: 2rem; }
+        .blog-content li { margin-bottom: 0.4rem; font-size: 1.05rem; }
+        .blog-content blockquote { border-left: 3px solid var(--accent); padding: 0.75rem 1.25rem; margin: 1.5rem 0; background: var(--card-bg); border-radius: 0 8px 8px 0; }
+        .blog-content blockquote p { color: var(--text-muted); margin-bottom: 0; }
+        .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
+        .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
+        .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
+        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content th { background: var(--card-bg); font-weight: 600; }
+        .blog-content tr:nth-child(even) { background: var(--card-bg); }
+        .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
+        .blog-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1.5rem 0; }
+
+        @media (max-width: 768px) {
+            .blog-content h1 { font-size: 1.7rem; }
+            .blog-content h2 { font-size: 1.3rem; }
+            .nav-links { display: none; }
+            .blog-content pre code { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav aria-label="Main navigation">
+                <div class="logo"><a href="/">Darshan Baslani</a></div>
+                <div class="nav-links">
+                    <a href="/#about">About</a>
+                    <a href="/blog/">Blogs</a>
+                    <a href="/#contact">Contact</a>
+                    <button id="theme-toggle" aria-label="Toggle Dark Mode">🌙</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <article itemscope itemtype="https://schema.org/BlogPosting">
+            <div class="blog-meta">
+                <a href="/blog/" class="blog-back">&larr; Back to all posts</a>
+                <div>
+                    <span class="blog-tag" itemprop="keywords">Triton</span>
+                    <time class="blog-date" datetime="2026-05-25" itemprop="datePublished">May 25, 2026</time>
+                    <span class="blog-readtime">&middot; 19 min read</span>
+                </div>
+            </div>
+            <div id="blog-content" class="blog-content" itemprop="articleBody">
+<h1>Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5</h1>
+<p>I rebuilt the inference stack for Qwen 3.5 (9B) from scratch in PyTorch, profiled it, and replaced the key bottlenecks with hand-written Triton GPU kernels. By fusing memory-bound operations and rewriting the Gated Delta Network (GDN) linear attention layers to run without slow Python loops, I bumped throughput from <strong>16 to 83 tokens/second</strong> on a single NVIDIA B200 (a 5.2x speedup).</p>
+<hr>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="#project-overview">Project Overview</a></li>
+<li><a href="#hardware-setup">Hardware Setup</a></li>
+<li><a href="#finding-the-bottlenecks-baseline-profiling">Finding the Bottlenecks (Baseline Profiling)</a></li>
+<li><a href="#fusing-the-residual-stream">Fusing the Residual Stream</a></li>
+<li><a href="#optimizing-gated-delta-attention">Optimizing Gated Delta Attention</a></li>
+<li><a href="#triton-vs-other-frameworks">Triton vs. Other Frameworks</a></li>
+<li><a href="#comparison-with-vllm">Comparison with vLLM</a></li>
+<li><a href="#takeaways">Takeaways</a></li>
+</ul>
+<hr>
+<h2>Project Overview</h2>
+<p>Unlike vanilla transformers, Qwen 3.5 uses a <strong>hybrid architecture</strong> that interleaves standard multi-head attention layers with <strong>Gated Delta Network (GDN)</strong> linear attention layers. The GDN layers use a recurrent state-space mechanism that compresses past context into a fixed-size state matrix instead of maintaining a growing KV cache.</p>
+<pre><code>Layer 0:  Linear Attention (GDN)
+Layer 1:  Linear Attention (GDN)
+Layer 2:  Linear Attention (GDN)
+Layer 3:  Full Attention (SDPA)    ← every 4th layer
+Layer 4:  Linear Attention (GDN)
+...
+Layer 31: Full Attention (SDPA)
+</code></pre>
+<p>Because <strong>75% of the decoder layers</strong> are GDN layers, optimizing them is critical; they dominate both prefill and decode latency.</p>
+<p>The goal here wasn&#39;t to build a production serving system, but to understand what happens between the CUDA cores and HBM when you run text generation, and to see how much performance we can recover through targeted Triton kernels.</p>
+<h3>Code Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/qwen.py">qwen.py</a></td>
+<td>Custom PyTorch implementation of the full Qwen 3.5 model (983 LOC)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/kernels/triton/fused_zero_centered_rmsnorm.py">fused_zero_centered_rmsnorm.py</a></td>
+<td>Triton kernel fusing residual additions and zero-centered RMSNorm</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/kernels/linear_attention/prefill.py">prefill.py</a></td>
+<td>Triton chunkwise GDN prefill kernel using WY decomposition (993 LOC)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/kernels/linear_attention/decode.py">decode.py</a></td>
+<td>Triton single-token GDN decode kernel</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/inference.py">modal/inference.py</a></td>
+<td>Inference pipeline deployed to Modal (NVIDIA B200)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/vllm_bench.py">modal/vllm_bench.py</a></td>
+<td>Benchmarking script comparing our performance against vLLM</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Hardware Setup</h2>
+<p>I developed local tests on a GTX 1650 to iterate fast, and ran final benchmarks on an NVIDIA B200 via Modal.</p>
+<pre><code class="language-mermaid">graph LR
+    subgraph Local[&quot;Local Development&quot;]
+        GPU1[&quot;GTX 1650&lt;br/&gt;4GB VRAM&lt;br/&gt;Turing SM75&quot;]
+        DEV[&quot;Functional correctness&lt;br/&gt;Kernel compilation&lt;br/&gt;Numerical validation&quot;]
+        GPU1 --&gt; DEV
+    end
+
+    subgraph Cloud[&quot;Modal Cloud&quot;]
+        GPU2[&quot;NVIDIA B200&lt;br/&gt;192GB HBM3e&lt;br/&gt;Blackwell SM100&quot;]
+        PERF[&quot;Throughput benchmarks&lt;br/&gt;Profiler traces&lt;br/&gt;Production metrics&quot;]
+        GPU2 --&gt; PERF
+    end
+
+    DEV --&gt;|&quot;modal run&quot;| PERF
+
+    style GPU1 fill:#1a1a2e,stroke:#e94560,color:#fff
+    style GPU2 fill:#0f3460,stroke:#16213e,color:#fff
+    style DEV fill:#16213e,stroke:#e94560,color:#ccc
+    style PERF fill:#16213e,stroke:#0f3460,color:#ccc
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Local Development</th>
+<th>Cloud Benchmark</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GPU</strong></td>
+<td>GTX 1650 (Turing SM75)</td>
+<td>NVIDIA B200 (Blackwell SM100)</td>
+</tr>
+<tr>
+<td><strong>VRAM</strong></td>
+<td>4 GB GDDR6</td>
+<td>192 GB HBM3e</td>
+</tr>
+<tr>
+<td><strong>Memory Bandwidth</strong></td>
+<td>128 GB/s</td>
+<td>8,000 GB/s</td>
+</tr>
+<tr>
+<td><strong>Role</strong></td>
+<td>Fast functional testing</td>
+<td>Throughput and profiling</td>
+</tr>
+</tbody></table>
+<h3>Profiling Setup</h3>
+<p>I captured profiler traces on the B200 using PyTorch&#39;s built-in <code>torch.profiler</code> with CPU + CUDA activity recording and memory tracking. The profiling script (<a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/inference-torch-profiler.py">inference-torch-profiler.py</a>) profiles the prefill pass and a few decode steps, exporting Chrome traces for analysis.</p>
+<p>I ran profiles at three main development stages:</p>
+<blockquote>
+<p>[!WARNING]
+<strong>Profiling Overhead:</strong> The absolute times in the traces are much slower than actual inference because the profiler (with memory tracking and <code>CUDA_LAUNCH_BLOCKING=1</code>) adds significant overhead. The throughput numbers below reflect actual, unprofiled runs, while the trace times show the relative gains under profiling conditions.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Trace</th>
+<th>Stage</th>
+<th>Profiled Time (with overhead)</th>
+<th>Actual Throughput</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>initial_trace.json</code></td>
+<td>Pure PyTorch baseline</td>
+<td>10.53 s</td>
+<td>~16 tok/s</td>
+</tr>
+<tr>
+<td><code>fused_rms_norm.json</code></td>
+<td>+ Fused Triton RMSNorm</td>
+<td>10.40 s</td>
+<td>~50 tok/s</td>
+</tr>
+<tr>
+<td><code>triton_linear_attention.json</code></td>
+<td>+ Triton GDN kernels</td>
+<td>6.51 s</td>
+<td>~83 tok/s</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Finding the Bottlenecks</h2>
+<h3>The Initial Trace</h3>
+<p>I started by profiling the baseline PyTorch model on the B200 to see where the actual execution time was spent.</p>
+<p><img src="/blog/images/initial_trace.jpg" alt="Initial trace showing a single decode step and the cascade of tiny CUDA kernels"></p>
+<p>The trace showed a classic memory-bandwidth bottleneck. A single decode step; which should ideally consist of a few fused operations; was launching dozens of tiny individual CUDA kernels:</p>
+<pre><code>aten::add          →  50 µs  (residual addition)
+aten::pow          →  30 µs  (variance computation)
+aten::mean         →  40 µs  (reduction for RMSNorm)
+aten::rsqrt        →  20 µs  (inverse sqrt)
+aten::mul          →  25 µs  (weight application)
+aten::to           →  15 µs  (dtype cast)
+</code></pre>
+<p>Each of these operations touches HBM; reading the hidden state (8 KB per token), performing one arithmetic step, and writing the result back. The real bottleneck wasn&#39;t the arithmetic; it was the kernel launch overhead and memory roundtrips.</p>
+<h3>The Abstraction Bottleneck</h3>
+<p>The standard PyTorch pattern treats each layer and operation as an isolated object:</p>
+<pre><code class="language-mermaid">graph TB
+    subgraph Standard[&quot;Standard PyTorch Pattern (Memory-Bound)&quot;]
+        direction TB
+        H0[&quot;hidden_states&quot;] --&gt;|&quot;Write to HBM&quot;| HBM1[&quot;HBM&quot;]
+        HBM1 --&gt;|&quot;Read from HBM&quot;| ADD[&quot;aten::add (residual)&quot;]
+        ADD --&gt;|&quot;Write to HBM&quot;| HBM2[&quot;HBM&quot;]
+        HBM2 --&gt;|&quot;Read from HBM&quot;| POW[&quot;aten::pow&quot;]
+        POW --&gt;|&quot;Write to HBM&quot;| HBM3[&quot;HBM&quot;]
+        HBM3 --&gt;|&quot;Read from HBM&quot;| MEAN[&quot;aten::mean&quot;]
+        MEAN --&gt;|&quot;Write to HBM&quot;| HBM4[&quot;HBM&quot;]
+        HBM4 --&gt;|&quot;Read from HBM&quot;| RSQRT[&quot;aten::rsqrt&quot;]
+        RSQRT --&gt;|&quot;Write to HBM&quot;| HBM5[&quot;HBM&quot;]
+        HBM5 --&gt;|&quot;Read from HBM&quot;| MUL[&quot;aten::mul (weight)&quot;]
+        MUL --&gt;|&quot;Write to HBM&quot;| HBM6[&quot;HBM&quot;]
+    end
+
+    style HBM1 fill:#e94560,color:#fff
+    style HBM2 fill:#e94560,color:#fff
+    style HBM3 fill:#e94560,color:#fff
+    style HBM4 fill:#e94560,color:#fff
+    style HBM5 fill:#e94560,color:#fff
+    style HBM6 fill:#e94560,color:#fff
+    style ADD fill:#1a1a2e,color:#fff
+    style POW fill:#1a1a2e,color:#fff
+    style MEAN fill:#1a1a2e,color:#fff
+    style RSQRT fill:#1a1a2e,color:#fff
+    style MUL fill:#1a1a2e,color:#fff
+</code></pre>
+<p>That means <strong>six HBM round-trips for a single normalization</strong>. On the B200, each round-trip for a 4096-dim hidden state costs very little time in raw transfer, but the launch overhead for each tiny kernel is 20-50 µs. Multiply that by 32 layers and 2 norms per layer, and you get <strong>64 normalization passes per decode step</strong>.</p>
+<p>Essentially, PyTorch&#39;s module abstraction (where each layer/operation is a self-contained forward pass) forces separate kernel launches and intermediate memory writes, which kills performance on the GPU.</p>
+<hr>
+<h2>Fusing the Residual Stream</h2>
+<h3>Passing the Residual Stream Down</h3>
+<p>To fix this, we can adopt a trick used by systems like vLLM: pass the residual stream as an independent tensor so that the next layer&#39;s normalization kernel can fuse both the addition and the normalization step.</p>
+<p>Instead of:</p>
+<pre><code class="language-python"># Standard: Layer owns its residual
+hidden = layer_norm(hidden + residual)
+</code></pre>
+<p>We restructure the decoder to return both:</p>
+<pre><code class="language-python"># Fused: Residual flows between layers
+hidden, residual = fused_norm(hidden, residual)
+</code></pre>
+<h3>The Fused Triton Kernel</h3>
+<p>Here is the Triton implementation:</p>
+<pre><code class="language-python">@triton.jit
+def _fused_zero_centered_rmsnorm(
+    Y_ptr, Y_row_stride,
+    S_ptr, S_row_stride,     # output residual
+    X_ptr, X_row_stride,
+    R_ptr, R_row_stride,     # input residual
+    W_ptr, n_cols, eps,
+    BLOCK_SIZE: tl.constexpr,
+):
+    row_idx = tl.program_id(0)
+    col_offsets = tl.arange(0, BLOCK_SIZE)
+    mask = col_offsets &lt; n_cols
+
+    # Step 1: Load X and R from HBM (the ONLY HBM read)
+    X_row = tl.load(X_ptr + row_idx * X_row_stride + col_offsets, mask=mask)
+    R_row = tl.load(R_ptr + row_idx * R_row_stride + col_offsets, mask=mask)
+
+    # Step 2: Fused residual add (stays in SRAM)
+    S_row = X_row + R_row
+    tl.store(S_ptr + row_idx * S_row_stride + col_offsets, S_row, mask=mask)
+
+    # Step 3: RMSNorm in FP32 (stays in SRAM)
+    S_row = S_row.to(tl.float32)
+    W_row = tl.load(W_ptr + col_offsets, mask=mask).to(tl.float32)
+
+    mean_square = tl.sum(S_row * S_row, axis=0) / n_cols
+    rstd = tl.rsqrt(mean_square + eps)
+    S_row = S_row * rstd
+
+    # Step 4: Zero-centered weight trick (Qwen-specific)
+    Y_row = S_row * (1.0 + W_row)
+
+    # Step 5: Write normalized output to HBM (the ONLY HBM write)
+    tl.store(Y_ptr + row_idx * Y_row_stride + col_offsets, Y_row.to(S_row_dtype), mask=mask)
+</code></pre>
+<h3>Key Implementation Details</h3>
+<ol>
+<li><strong>Zero-Centered Weights:</strong> Standard RMSNorm applies <code>output = norm(x) * weight</code>. Qwen 3.5 uses zero-centered weights initialized at 0, applying <code>output = norm(x) * (1.0 + weight)</code>. Standard RMSNorm kernels will output incorrect activations and cause the model to diverge.</li>
+<li><strong>FP32 Accumulation:</strong> We must upcast the accumulated sum to FP32 before computing the variance. BF16&#39;s limited precision causes compounding rounding errors across 32 layers, leading to numerical divergence.</li>
+<li><strong>Dual Outputs:</strong> The kernel outputs the normalized hidden state <code>Y</code> and the new residual <code>S</code> in one go. While <code>S</code> still gets written to HBM for the next layer, the fusion eliminates 5 intermediate round-trips and launches.</li>
+</ol>
+<h3>Memory Traffic and Kernel Launches</h3>
+<pre><code class="language-mermaid">graph TB
+    subgraph Fused[&quot;Fused Triton Kernel (1 Launch)&quot;]
+        direction TB
+        READ[&quot;Read X, R from HBM&quot;] --&gt; SRAM[&quot;SRAM (Shared Memory)&quot;]
+        SRAM --&gt; ADD_F[&quot;Add: S = X + R&quot;]
+        ADD_F --&gt; NORM_F[&quot;Normalize in FP32&quot;]
+        NORM_F --&gt; WEIGHT_F[&quot;Apply (1 + W)&quot;]
+        WEIGHT_F --&gt; WRITE[&quot;Write Y, S to HBM&quot;]
+    end
+
+    style READ fill:#0f3460,color:#fff
+    style SRAM fill:#16213e,stroke:#e94560,stroke-width:3,color:#fff
+    style ADD_F fill:#1a1a2e,color:#fff
+    style NORM_F fill:#1a1a2e,color:#fff
+    style WEIGHT_F fill:#1a1a2e,color:#fff
+    style WRITE fill:#0f3460,color:#fff
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Before (PyTorch)</th>
+<th>After (Fused Triton)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HBM round-trips per norm</td>
+<td>6</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Kernel launches per norm</td>
+<td>6</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Total norms per decode step</td>
+<td>64</td>
+<td>64</td>
+</tr>
+<tr>
+<td>Kernel launches eliminated</td>
+<td>;</td>
+<td><strong>320 per step</strong></td>
+</tr>
+</tbody></table>
+<h3>Restructuring the Decoder Layer</h3>
+<p>We also need to map the standard HuggingFace weights into our fused model format during loading (duplicating <code>input_layernorm.weight</code> into both a <code>standard</code> and <code>fused</code> slot).</p>
+<pre><code class="language-python">class Qwen3_5DecoderLayer(nn.Module):
+    def forward(self, hidden_states, residual, ...):
+        if residual is None:
+            # First layer: no residual yet, use standard norm
+            residual = hidden_states
+            hidden_states = self.input_layernorm_standard(hidden_states)
+        else:
+            # Subsequent layers: fused residual + norm
+            hidden_states, residual = self.input_layernorm_fused(X=hidden_states, R=residual)
+
+        # Token mixer (attention or GDN)
+        hidden_states = self.token_mixer(hidden_states)
+
+        # Post-attention: always fused
+        hidden_states, residual = self.post_attention_layernorm(X=hidden_states, R=residual)
+        hidden_states = self.mlp(hidden_states)
+
+        return hidden_states, residual  # ← residual flows to next layer
+</code></pre>
+<h3>Performance Gains (Stage 1)</h3>
+<p><img src="/blog/images/fused_rms_norm.png" alt="Profiler trace after applying fused RMSNorm, showing reduced kernel launch density"></p>
+<table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>Throughput (B200, 150 tokens)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pure PyTorch baseline</td>
+<td>~16 tok/s</td>
+</tr>
+<tr>
+<td>+ Fused Triton RMSNorm</td>
+<td><strong>~50 tok/s</strong> (3.1x speedup)</td>
+</tr>
+</tbody></table>
+<p>Fusing RMSNorm and residual addition got us to ~50 tokens/sec. However, the profiler showed we were still heavily bottlenecked by the Gated Delta Network (GDN) linear attention layers, which were still running in pure PyTorch with sequential Python loops.</p>
+<hr>
+<h2>Optimizing Gated Delta Attention</h2>
+<h3>GDN Attention vs. Standard Attention</h3>
+<p>Standard multi-head attention processes all tokens in parallel via $Q K^\top V$. The KV cache grows linearly with sequence length, but the attention computation itself is highly parallelizable.</p>
+<p>GDN linear attention works differently. It maintains a <strong>fixed-size recurrent state matrix</strong> $H \in \mathbb{R}^{K \times V}$ (128 × 128 = 16 KB per head) that compresses all past context:</p>
+<pre><code class="language-mermaid">graph LR
+    subgraph Standard[&quot;Standard Attention&quot;]
+        Q1[&quot;Q&quot;] --&gt; DOT1[&quot;Q @ Kᵀ&quot;]
+        K1[&quot;K cache&lt;br/&gt;(grows with seq)&quot;] --&gt; DOT1
+        DOT1 --&gt; SOFT[&quot;softmax&quot;]
+        SOFT --&gt; DOT2[&quot;... @ V&quot;]
+        V1[&quot;V cache&lt;br/&gt;(grows with seq)&quot;] --&gt; DOT2
+    end
+
+    subgraph GDN[&quot;GDN Linear Attention&quot;]
+        Q2[&quot;q_t&quot;] --&gt; OUT[&quot;o_t = q_t @ H_t&quot;]
+        STATE[&quot;H_t&lt;br/&gt;(fixed 128×128)&quot;] --&gt; OUT
+        K2[&quot;k_t&quot;] --&gt; UPDATE[&quot;H_{t+1} = γ·H_t + k_t ⊗ δ_t&quot;]
+        V2[&quot;v_t&quot;] --&gt; DELTA[&quot;δ_t = β·(v_t - k_t @ H_t)&quot;]
+        STATE --&gt; DELTA
+        DELTA --&gt; UPDATE
+    end
+
+    style STATE fill:#e94560,stroke:#fff,color:#fff
+    style K1 fill:#0f3460,color:#fff
+    style V1 fill:#0f3460,color:#fff
+</code></pre>
+<p>The recurrence relation for each token:</p>
+<p>$$H_{t+1} = \gamma_t \cdot H_t + k_t \otimes \beta_t \cdot (v_t - k_t^\top H_t)$$
+$$o_t = q_t^\top \cdot H_{t+1}$$</p>
+<p>Where the learned gating decay $\gamma_t$ is defined as:
+$$\gamma_t = \exp\left(-\exp(A_{\text{log}}) \cdot \text{softplus}(a_t + \text{dt}_{\text{bias}})\right)$$</p>
+<h3>The Bottleneck: Sequential Loops in PyTorch</h3>
+<p>The initial PyTorch implementation processed chunks sequentially using a Python <code>for</code> loop:</p>
+<pre><code class="language-python"># The bottleneck: sequential iteration
+for i in range(total_sequence_length // chunk_size):
+    q_i, k_i, v_i = query[:, :, i], key[:, :, i], value[:, :, i]
+    attn = q_i @ k_i.transpose(-1, -2) * decay_mask[:, :, i]
+    v_prime = k_cumdecay[:, :, i] @ last_recurrent_state  # ← HBM read
+    v_new = v_i - v_prime
+    attn_inter = (q_i * g[:, :, i, :, None].exp()) @ last_recurrent_state  # ← HBM read
+    core_attn_out[:, :, i] = attn_inter + attn @ v_new
+    last_recurrent_state = (  # ← HBM write, then read again next iteration
+        last_recurrent_state * g[:, :, i, -1, None, None].exp()
+        + (k_i * ...).transpose(-1, -2) @ v_new
+    )
+</code></pre>
+<p>For a prefill sequence of 512 tokens with a chunk size of 64, we have $\frac{512}{64} = 8$ chunks. In every loop iteration:</p>
+<ol>
+<li><strong>Read</strong> the recurrent state matrix $H$ from HBM (128 × 128 float32 elements = 64 KB/head × 32 heads = 2 MB total).</li>
+<li>Perform small matrix multiplications.</li>
+<li><strong>Write</strong> the updated 2 MB state matrix back to HBM.</li>
+<li>Yield execution back to Python to start the next iteration.</li>
+</ol>
+<p>This results in:
+$$\text{Total HBM Traffic} = 8 \text{ chunks} \times (2\text{ MB read} + 2\text{ MB write}) = 32\text{ MB}$$</p>
+<p>This is 32 MB of redundant memory transfers per layer. All of this state could instead live entirely in the GPU&#39;s SRAM (shared memory) during the entire forward pass.</p>
+<h3>Writing the Triton Chunkwise GDN Kernel</h3>
+<p>To parallelize this, we use the chunkwise formulation from the <a href="https://github.com/fla-org/flash-linear-attention">Flash Linear Attention (FLA)</a> paper: intra-chunk interactions are computed in parallel via matrix multiplications, while the inter-chunk state updates are propagated sequentially while keeping the state matrix in SRAM.</p>
+<h4>Prefill Kernel Architecture</h4>
+<p>The prefill is split into two phases for maximum parallelism:</p>
+<pre><code class="language-mermaid">flowchart TB
+    subgraph Phase1[&quot;Phase 1: WY Prepass (Embarrassingly Parallel)&quot;]
+        direction LR
+        P1[&quot;Grid: (num_seqs, num_heads, num_chunks)&quot;]
+        P1 --&gt; C1[&quot;Chunk 0&quot;]
+        P1 --&gt; C2[&quot;Chunk 1&quot;]
+        P1 --&gt; C3[&quot;Chunk 2&quot;]
+        P1 --&gt; CN[&quot;Chunk N&quot;]
+
+        C1 --&gt; WY1[&quot;Compute:&lt;br/&gt;• K @ Kᵀ gram matrix&lt;br/&gt;• (I+N)⁻¹ via Neumann series&lt;br/&gt;• Gate cumulative products&lt;br/&gt;• Q @ Kᵀ interaction matrix&quot;]
+        C2 --&gt; WY2[&quot;Same per-chunk&lt;br/&gt;computation&quot;]
+        C3 --&gt; WY3[&quot;Same per-chunk&lt;br/&gt;computation&quot;]
+        CN --&gt; WYN[&quot;Same per-chunk&lt;br/&gt;computation&quot;]
+    end
+
+    subgraph Phase2[&quot;Phase 2: Sequential State Propagation (State in SRAM)&quot;]
+        direction TB
+        S0[&quot;State H₀&lt;br/&gt;(loaded once)&quot;] --&gt; PROC0[&quot;Process Chunk 0&lt;br/&gt;using precomputed WY&quot;]
+        PROC0 --&gt;|&quot;State stays in SRAM&quot;| PROC1[&quot;Process Chunk 1&lt;br/&gt;using precomputed WY&quot;]
+        PROC1 --&gt;|&quot;State stays in SRAM&quot;| PROC2[&quot;Process Chunk 2&lt;br/&gt;using precomputed WY&quot;]
+        PROC2 --&gt;|&quot;State stays in SRAM&quot;| PROCN[&quot;Process Chunk N&lt;br/&gt;using precomputed WY&quot;]
+        PROCN --&gt; SN[&quot;State H_N&lt;br/&gt;(written once)&quot;]
+    end
+
+    Phase1 --&gt;|&quot;WY data in HBM&quot;| Phase2
+
+    style P1 fill:#0f3460,color:#fff
+    style S0 fill:#e94560,color:#fff
+    style SN fill:#e94560,color:#fff
+    style PROC0 fill:#16213e,color:#fff
+    style PROC1 fill:#16213e,color:#fff
+    style PROC2 fill:#16213e,color:#fff
+    style PROCN fill:#16213e,color:#fff
+</code></pre>
+<h4>The WY Decomposition</h4>
+<p>The intra-chunk math uses the delta rule to formulate a lower-triangular system:</p>
+<p>$$(I + N) \cdot X = \beta \cdot \left(\frac{V}{G} - K \cdot S_{\text{in}}^\top\right)$$</p>
+<p>Where $N$ is a strictly lower-triangular nilpotent matrix ($N[j,i] = \beta_j \cdot (k_j \cdot k_i)$ for $i &lt; j$). Since $N$ is nilpotent of order $C$ (chunk size), we can invert $(I+N)$ exactly using the Neumann series:</p>
+<p>$$(I + N)^{-1} = (I - N)(I + N^2)(I + N^4) \cdots$$</p>
+<p>This is implemented as a fixed-depth doubling chain:</p>
+<pre><code class="language-python">@triton.jit
+def _apply_unit_lower_inverse(nil, rhs, BV: tl.constexpr, CHUNK: tl.constexpr):
+    &quot;&quot;&quot;(I+N)^{-1} via doubling. Uses TF32 tensor cores for numerical stability.&quot;&quot;&quot;
+    sol = rhs - _dot_f32(nil, rhs)        # (I - N) @ rhs
+    power = _dot_f32(nil, nil)             # N²
+    if CHUNK &gt;= 4:
+        sol = sol + _dot_f32(power, sol)   # += N² @ sol
+        power = _dot_f32(power, power)     # N⁴
+    if CHUNK &gt;= 8:
+        sol = sol + _dot_f32(power, sol)   # += N⁴ @ sol
+        power = _dot_f32(power, power)     # N⁸
+    if CHUNK &gt;= 16:
+        sol = sol + _dot_f32(power, sol)   # += N⁸ @ sol
+        power = _dot_f32(power, power)     # N¹⁶
+    if CHUNK &gt;= 32:
+        sol = sol + _dot_f32(power, sol)   # += N¹⁶ @ sol
+    return sol
+</code></pre>
+<h4>Blackwell-Specific Optimizations</h4>
+<p>Getting clean performance on the B200 required a few low-level adjustments:</p>
+<ol>
+<li><strong>Precision Splitting (TF32 vs. BF16):</strong> The nilpotent inverse chain uses TF32 (19-bit mantissa) since numerical errors compound quickly across the log-depth doubling chain. For the large K=128 contractions (<code>K @ K^T</code>, <code>Q @ state^T</code>), we use BF16 tensor cores to get a 4x speedup, where rounding is bounded for single-shot matmuls.</li>
+<li><strong>Blackwell Code-Gen Bug:</strong> We hit a bug in Triton&#39;s compiler on Blackwell (specifically the <code>TritonGPUHoistTMEMAlloc</code> pass) where it incorrectly fused <code>tl.dot</code> outputs. We bypassed it by wrapping the dot product in an inline PTX <code>mov.f32</code> barrier:</li>
+</ol>
+<pre><code class="language-python">@triton.jit
+def _dot_f32(a, b):
+    out = tl.dot(a, b, input_precision=&quot;tf32&quot;, out_dtype=tl.float32)
+    return tl.inline_asm_elementwise(
+        asm=&quot;mov.f32 $0, $1;&quot;,
+        constraints=&quot;=r,r&quot;,
+        args=[out], dtype=tl.float32, is_pure=True, pack=1,
+    )
+</code></pre>
+<ol start="3">
+<li><strong>Adaptive Tiling:</strong> We adjusted tile sizes dynamically depending on the workload:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Small Batch</th>
+<th>Large Batch</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CHUNK</code></td>
+<td>32</td>
+<td>16</td>
+<td>Larger chunks amortize launch overhead; smaller chunks save Gram matrix computation</td>
+</tr>
+<tr>
+<td><code>BV</code> (V-tile)</td>
+<td>16</td>
+<td>16-32</td>
+<td>Controls shared memory occupancy vs. register pressure</td>
+</tr>
+<tr>
+<td><code>num_warps</code></td>
+<td>4</td>
+<td>2</td>
+<td>Reduces sync overhead on smaller sequence batches</td>
+</tr>
+</tbody></table>
+<h4>The Decode Kernel</h4>
+<p>For the single-token decode kernel, things are simpler since we don&#39;t need chunking. We map the grid over batch and heads:</p>
+<ol>
+<li>Load the state tile $H[\text{BV}, K]$ from HBM (single read).</li>
+<li>Compute the gate decay value $\gamma = \exp\left(-\exp(A_{\text{log}}) \cdot \text{softplus}(a + \text{dt}_{\text{bias}})\right)$.</li>
+<li>Run the recurrent update step directly in registers.</li>
+<li>Write out the output token and the new state back to HBM.</li>
+</ol>
+<pre><code class="language-python">@triton.jit
+def gdn_decode_kernel(...):
+    # Gate computation
+    g = tl.exp(-tl.exp(A_log_val) * softplus_x)
+    beta = tl.sigmoid(b_val)
+
+    # Decay existing state
+    old_state = g * b_h
+
+    # Delta rule update
+    old_v = tl.sum(old_state * b_k[None, :], axis=1)
+    delta_v = beta * (b_v - old_v)
+
+    # Output BEFORE state update (frees registers)
+    old_o = tl.sum(old_state * b_q[None, :], axis=1)
+    kq = tl.sum(b_k * b_q)
+    b_o = scale * (old_o + delta_v * kq)
+    tl.store(out_ptr + ..., b_o.to(tl.bfloat16))
+
+    # State update (register-only, no extra HBM read)
+    state_out = old_state + delta_v[:, None] * b_k[None, :]
+    tl.store(new_state_ptr + ..., state_out)
+</code></pre>
+<blockquote>
+<p>[!TIP]
+Storing the output <em>before</em> computing <code>state_out</code> frees up registers and prevents local memory spilling. Since Blackwell caps registers at 255 per thread, this manual scheduling prevents register spills.</p>
+</blockquote>
+<h3>Performance Gains (Stage 2)</h3>
+<p><img src="/blog/images/triton_linear_attention.png" alt="Profiler trace with fused GDN kernels, showing a clean decode step free of Python loop overhead"></p>
+<table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>End-to-End Time (150 tok)</th>
+<th>Throughput</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pure PyTorch baseline</td>
+<td>9.28 s</td>
+<td>~16 tok/s</td>
+</tr>
+<tr>
+<td>+ Fused Triton RMSNorm</td>
+<td>3.02 s</td>
+<td>~50 tok/s</td>
+</tr>
+<tr>
+<td>+ Triton GDN Kernels</td>
+<td>1.81 s</td>
+<td><strong>~83 tok/s</strong> (5.2x speedup)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Triton vs. Other Frameworks</h2>
+<p>When choosing how to write these kernels, there were three main options:</p>
+<ol>
+<li><strong>Triton:</strong> Fast iteration, Python-based, portable. But we lose low-level control over TMA (Tensor Memory Accelerator) and ran into compiler bugs on Blackwell.</li>
+<li><strong>TileLang:</strong> Good compromise, offers warp specialization and better occupancy control, but the ecosystem is very young.</li>
+<li><strong>CuTe / CUTLASS (C++):</strong> Maximum performance, explicit layout swizzling, and full control over asynchronous memory copies. But it requires writing 3,000+ lines of C++ template metaprogramming per kernel, adding weeks of development.</li>
+</ol>
+<h3>Where Triton Falls Short on Blackwell</h3>
+<p>Writing kernels for the B200 highlighted a few areas where Triton&#39;s compiler abstractions hit limits:</p>
+<ul>
+<li><strong>TMA Control:</strong> The B200 features a Tensor Memory Accelerator to prefetch data asynchronously. Triton abstracts this, meaning we cannot manually orchestrate tile prefetching or schedule memory loads.</li>
+<li><strong>Swizzle Layouts:</strong> Preventing bank conflicts in shared memory requires specific data layouts. Triton manages this automatically but can generate suboptimal swizzling patterns for non-power-of-two tiles.</li>
+<li><strong>Compiler Bugs:</strong> The code-generation bug in <code>TritonGPUHoistTMEMAlloc</code> meant we had to resort to inline PTX assembly barriers.</li>
+</ul>
+<h3>Why I Stuck With Triton</h3>
+<p>Even with these issues, Triton was the right choice for this project:</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Triton</th>
+<th>CuTe/CUTLASS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Iteration Time</td>
+<td>Minutes</td>
+<td>Hours (compile + run)</td>
+</tr>
+<tr>
+<td>Lines of Code</td>
+<td>~1,100 total</td>
+<td>~3,000+ per kernel</td>
+</tr>
+<tr>
+<td>Maintainability</td>
+<td>High (Python-like syntax)</td>
+<td>Low (highly complex C++ templates)</td>
+</tr>
+<tr>
+<td>Throughput</td>
+<td>83 tokens/s</td>
+<td>Theoretical peak (maybe ~90 tok/s)</td>
+</tr>
+<tr>
+<td>Development Time</td>
+<td>2 weeks</td>
+<td>2+ months(I have fulltime college :( )</td>
+</tr>
+</tbody></table>
+<p>Ultimately, hitting 83 tokens/second in a couple of weeks with Triton is a much better engineering tradeoff than spending months in C++ to chase a marginal single-digit performance gain.</p>
+<hr>
+<h2>Comparison with vLLM</h2>
+<p>To see where these optimizations stand relative to a production serving system, I benchmarked our setup against vLLM on the same B200 hardware:</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Throughput</th>
+<th>Setup</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Custom Triton Kernels</td>
+<td><strong>83 tok/s</strong></td>
+<td>Single request, no batching, raw Triton kernels</td>
+</tr>
+<tr>
+<td>vLLM v0.20.1</td>
+<td><strong>~250 tok/s</strong></td>
+<td>Production stack (PagedAttention, CUDA Graphs, scheduling)</td>
+</tr>
+</tbody></table>
+<h3>Analyzing the Performance Difference</h3>
+<p>The 3x throughput gap is due to systems-level architecture rather than raw kernel execution speeds:</p>
+<table>
+<thead>
+<tr>
+<th>Optimization</th>
+<th>Custom Pipeline</th>
+<th>vLLM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CUDA Graphs</strong></td>
+<td>No (adds CPU overhead per decode step)</td>
+<td>Yes (captures and replays decode graphs)</td>
+</tr>
+<tr>
+<td><strong>Continuous Batching</strong></td>
+<td>No (runs single request at a time)</td>
+<td>Yes (batches active requests dynamically)</td>
+</tr>
+<tr>
+<td><strong>PagedAttention</strong></td>
+<td>No (pre-allocates flat tensors)</td>
+<td>Yes (dynamic KV page management)</td>
+</tr>
+<tr>
+<td><strong>Decode Loop</strong></td>
+<td>Python-driven loop</td>
+<td>Optimized C++ scheduling / engine</td>
+</tr>
+</tbody></table>
+<p>In a production environment, kernel and systems-level optimizations are complementary. The custom Triton kernels developed here could be plugged directly into an engine like vLLM to gain the benefits of PagedAttention and CUDA Graphs.</p>
+<h3>When to Stop Optimizing</h3>
+<p>At 83 tokens/second, we hit the point of diminishing returns for kernel optimization:</p>
+<ul>
+<li>Getting from 16 to 83 tokens/sec required about 1,100 lines of Triton.</li>
+<li>To push past 83 tokens/sec, we would need to eliminate CPU launch overhead using CUDA Graphs (a system orchestration task) or rewrite the kernels in CuTe to squeak out a few percentage points of memory efficiency.</li>
+</ul>
+<p>Because the core performance bottleneck is now CPU dispatch and framework overhead, further micro-tuning the Triton kernels wouldn&#39;t make sense.</p>
+<hr>
+<h2>Takeaways</h2>
+<p>Writing high-performance GPU kernels is mostly about respecting the memory hierarchy:</p>
+<ol>
+<li><strong>Keep data in SRAM:</strong> Moving intermediate states back and forth to HBM wastes bandwidth. Keep inputs in shared memory as long as possible.</li>
+<li><strong>Minimize kernel launches:</strong> Fusing dependent operations (like residual additions and normalization) cuts launch overhead.</li>
+<li><strong>Eliminate Python loops:</strong> Replace sequential execution paths with chunked, parallel CUDA blocks.</li>
+</ol>
+<h3>Quick Stats</h3>
+<ul>
+<li><strong>Model:</strong> Qwen 3.5-9B (hybrid GDN + multi-head attention)</li>
+<li><strong>Hardware:</strong> NVIDIA B200 (192 GB HBM3e)</li>
+<li><strong>Baseline Speed:</strong> 16 tokens/s</li>
+<li><strong>Optimized Speed:</strong> 83 tokens/s (5.2x speedup)</li>
+<li><strong>Triton Code:</strong> ~1,100 lines</li>
+<li><strong>PyTorch Model Code:</strong> ~983 lines</li>
+</ul>
+<hr>
+<p><em>Built by Darshan Baslani. Kernels prototyped on a GTX 1650, benchmarked on NVIDIA B200 via Modal.</em></p>
+<p><em>Source: <a href="https://github.com/Darshan-Baslani/qwen3.5-optimized">github.com/Darshan-Baslani/qwen3.5-optimized</a></em></p>
+
+            </div>
+        </article>
+    </main>
+
+    <footer role="contentinfo">
+        <div class="container" id="contact">
+            <p>You can reach me out at</p>
+            <nav aria-label="Social links" class="social-links">
+                <a href="mailto:dcbaslani@gmail.com" rel="me">Email</a>
+                <a href="https://www.linkedin.com/in/darshan-baslani-7086051b6/" rel="me noopener noreferrer" target="_blank">LinkedIn</a>
+                <a href="https://twitter.com/neuronfitting" rel="me noopener noreferrer" target="_blank">Twitter</a>
+                <a href="https://github.com/Darshan-Baslani" rel="me noopener noreferrer" target="_blank">GitHub</a>
+            </nav>
+            <br>
+            <p style="font-size: 0.8rem; opacity: 0.5;">&copy; 2026 Darshan.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <script>
+        // Theme toggle — icon init based on already-applied theme (set in <head>)
+        const toggleButton = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+        if (htmlElement.getAttribute('data-theme') === 'dark') toggleButton.textContent = '☀️';
+        toggleButton.addEventListener('click', () => {
+            if (htmlElement.getAttribute('data-theme') === 'dark') {
+                htmlElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                toggleButton.textContent = '🌙';
+            } else {
+                htmlElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                toggleButton.textContent = '☀️';
+            }
+        });
+
+        // Syntax highlighting for pre-rendered code blocks
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
+    </script>
+    <script src="/trackers.js"></script>
+</body>
+</html>

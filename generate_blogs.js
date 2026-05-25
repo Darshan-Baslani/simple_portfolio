@@ -16,6 +16,14 @@ if (!fs.existsSync(BLOG_DIR)) {
     fs.mkdirSync(BLOG_DIR, { recursive: true });
 }
 
+// Copy images from blogs/images to blog/images
+const imagesSrc = path.join(BLOGS_DATA_DIR, 'images');
+const imagesDest = path.join(BLOG_DIR, 'images');
+if (fs.existsSync(imagesSrc)) {
+    fs.cpSync(imagesSrc, imagesDest, { recursive: true });
+    console.log('Copied blogs/images to blog/images');
+}
+
 // Configure marked for SSR
 marked.setOptions({ gfm: true, breaks: false });
 
