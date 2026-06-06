@@ -135,6 +135,34 @@ function restoreMath(html, mathBlocks) {
     return html;
 }
 
+function buildMirrorDocument(post, mdText, sourceUrl) {
+    return `# ${post.title}\n\n- Source: ${sourceUrl}\n- Published: ${post.date}\n- Topic: ${post.tag}\n- Description: ${post.description}\n\n---\n\n${mdText.trim()}\n`;
+}
+
+function buildBlogIndexMirror(entries) {
+    const lines = entries.map((entry) => {
+        return `- [${entry.title}](${entry.url})\n  - Description: ${entry.description}\n  - Topic: ${entry.tag}\n  - Published: ${entry.date}\n  - Markdown: ${entry.mdUrl}\n  - Text: ${entry.txtUrl}`;
+    }).join('\n');
+
+    return `# Blog — Darshan Baslani\n\nTechnical blog posts on CUDA programming, GPU kernel optimization, CuTe, Triton, and machine learning systems.\n\n## Posts\n\n${lines}\n`;
+}
+
+function buildSiteLlmIndex(entries) {
+    const lines = entries.map((entry) => {
+        return `- [${entry.title}](${entry.url})\n  - Description: ${entry.description}\n  - Topic: ${entry.tag}\n  - Published: ${entry.date}\n  - Markdown mirror: ${entry.mdUrl}\n  - Text mirror: ${entry.txtUrl}`;
+    }).join('\n');
+
+    return `# Darshan Baslani\n\nML systems engineer writing about CUDA, GPU architecture, Triton, CuTe, and performance engineering.\n\n## Start Here\n\n- Homepage: ${SITE_URL}/\n- Blog index: ${SITE_URL}/blog/\n- Blog text index: ${SITE_URL}/blog/llms.txt\n- Full blog text: ${SITE_URL}/llms-full.txt\n\n## Blog Posts\n\n${lines}\n`;
+}
+
+function buildFullSiteText(entries) {
+    const sections = entries.map((entry) => {
+        return `# ${entry.title}\n\n- URL: ${entry.url}\n- Markdown: ${entry.mdUrl}\n- Text: ${entry.txtUrl}\n- Published: ${entry.date}\n- Topic: ${entry.tag}\n- Description: ${entry.description}\n\n${entry.sourceMdText.trim()}\n`;
+    }).join('\n---\n\n');
+
+    return `# Darshan Baslani - Full Blog Text\n\nThis file aggregates the readable source for every blog post on the site.\n\n${sections}\n`;
+}
+
 // Helper: post-process GitHub-style alerts in blockquotes
 function processAlerts(html) {
     const alertTypes = {
@@ -257,6 +285,8 @@ const indexHtmlTemplate = `<!DOCTYPE html>
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="Blog — Darshan Baslani">
     <meta name="twitter:description" content="Technical blog posts on CUDA programming, GPU kernel optimization, CuTe library, and machine learning systems.">
+    <link rel="alternate" type="text/markdown" href="/blog/index.md">
+    <link rel="alternate" type="text/plain" href="/blog/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -413,9 +443,12 @@ console.log('Created blog/index.html');
 // ============================================================
 // 2. Generate blog/[slug]/index.html for all posts (with SSR!)
 // ============================================================
+const llmEntries = [];
 const blogPostTemplate = (slug, post, renderedHtml, readMin) => {
     const title = post.title.replaceAll('—', '; ');
     const postUrl = `${SITE_URL}/blog/${slug}/`;
+    const mdUrl = `/blog/${slug}/index.md`;
+    const txtUrl = `/blog/${slug}/index.txt`;
     const dateFormatted = formatDate(post.date);
 
     // JSON-LD for individual blog post
@@ -479,6 +512,8 @@ const blogPostTemplate = (slug, post, renderedHtml, readMin) => {
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="${title}">
     <meta name="twitter:description" content="${post.description}">
+    <link rel="alternate" type="text/markdown" href="${mdUrl}">
+    <link rel="alternate" type="text/plain" href="${txtUrl}">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -764,10 +799,52 @@ for (const post of manifest.posts) {
     const htmlPath = path.join(postDir, 'index.html');
     fs.writeFileSync(htmlPath, blogPostTemplate(post.slug, post, renderedHtml, readMin));
     console.log(`Generated blog/${post.slug}/index.html (SSR, ${readMin} min read)`);
+
+    const postUrl = `${SITE_URL}/blog/${post.slug}/`;
+    const mdUrl = `/blog/${post.slug}/index.md`;
+    const txtUrl = `/blog/${post.slug}/index.txt`;
+    const mirrorDoc = buildMirrorDocument(post, mdText, postUrl);
+    fs.writeFileSync(path.join(postDir, 'index.md'), mirrorDoc);
+    fs.writeFileSync(path.join(postDir, 'index.txt'), mirrorDoc);
+    console.log(`Generated blog/${post.slug}/index.md and index.txt`);
+
+    llmEntries.push({
+        slug: post.slug,
+        title: post.title,
+        description: post.description,
+        tag: post.tag,
+        date: post.date,
+        url: postUrl,
+        mdUrl,
+        txtUrl,
+        sourceMdText: mdText,
+    });
 }
 
 // ============================================================
-// 3. Generate sitemap.xml
+// 3. Generate LLM helper files
+// ============================================================
+const blogIndexMirror = buildBlogIndexMirror(llmEntries);
+fs.writeFileSync(path.join(BLOG_DIR, 'index.md'), blogIndexMirror);
+fs.writeFileSync(path.join(BLOG_DIR, 'index.txt'), blogIndexMirror);
+console.log('Generated blog/index.md and index.txt');
+
+const blogLlmIndex = `# Blog LLM Index\n\n${llmEntries.map((entry) => {
+    return `- [${entry.title}](${entry.url})\n  - Markdown: ${entry.mdUrl}\n  - Text: ${entry.txtUrl}`;
+}).join('\n')}\n`;
+fs.writeFileSync(path.join(BLOG_DIR, 'llms.txt'), blogLlmIndex);
+console.log('Generated blog/llms.txt');
+
+const siteLlmIndex = buildSiteLlmIndex(llmEntries);
+fs.writeFileSync(path.join(ROOT_DIR, 'llms.txt'), siteLlmIndex);
+console.log('Generated llms.txt');
+
+const fullSiteText = buildFullSiteText(llmEntries);
+fs.writeFileSync(path.join(ROOT_DIR, 'llms-full.txt'), fullSiteText);
+console.log('Generated llms-full.txt');
+
+// ============================================================
+// 4. Generate sitemap.xml
 // ============================================================
 const today = new Date().toISOString().split('T')[0];
 
