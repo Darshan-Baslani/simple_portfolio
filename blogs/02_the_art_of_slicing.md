@@ -1,7 +1,7 @@
 # The Art of Slicing — Partitioning Data Across Blocks and Threads
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), CUDA thread blocks (`blockIdx`, `threadIdx`)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), CUDA thread blocks (`blockIdx`, `threadIdx`)
 
 ## 1. The Problem (The "Why")
 

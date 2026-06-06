@@ -6,7 +6,7 @@
     <title>The Parallel Copy ; Orchestrating Threads with TiledCopy — Darshan Baslani</title>
     <meta name="description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/04_the_parallel_copy/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="The Parallel Copy ; Orchestrating Threads with TiledCopy">
     <meta property="og:description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/04_the_parallel_copy/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-02-24">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="The Parallel Copy ; Orchestrating Threads with TiledCopy">
     <meta name="twitter:description" content="How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.">
-    <link rel="alternate" type="text/markdown" href="/blog/04_the_parallel_copy/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/04_the_parallel_copy/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/04_the_parallel_copy/"
+    "@id": "https://www.dcbaslani.xyz/blog/04_the_parallel_copy/"
   },
   "keywords": "CUDA",
   "wordCount": 3030,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="the-parallel-copy--orchestrating-threads-with-tiledcopy">The Parallel Copy ;  Orchestrating Threads with TiledCopy</h1>
 <p><strong>Difficulty:</strong> Beginner–Intermediate
-<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing">Tutorial 02: The Art of Slicing</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy">Tutorial 03: The Naive Copy</a></p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/">Tutorial 02: The Art of Slicing</a>, <a href="https://www.dcbaslani.xyz/blog/03_the_naive_copy/">Tutorial 03: The Naive Copy</a></p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 03 showed how one thread can vectorize its copy ;  using a dolly instead of hand-carrying boxes. But a real kernel doesn&#39;t have one worker on the loading dock; it has 32, 128, or 256 workers that all need to copy the <em>same tile together</em>, without stepping on each other&#39;s toes.</p>
 <p>You could combine Tutorial 02&#39;s <code>local_partition</code> with Tutorial 03&#39;s <code>copy()</code>:</p>

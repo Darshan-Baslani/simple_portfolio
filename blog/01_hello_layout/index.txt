@@ -1,6 +1,6 @@
 # Hello, Layout! ; Visualizing Memory in CuTe
 
-- Source: https://darshanbaslani.com/blog/01_hello_layout/
+- Source: https://www.dcbaslani.xyz/blog/01_hello_layout/
 - Published: 2025-06-15
 - Topic: CUDA
 - Description: Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.

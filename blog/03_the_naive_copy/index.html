@@ -6,7 +6,7 @@
     <title>The Naive Copy ; Scalar vs. Vectorized Memory Movement — Darshan Baslani</title>
     <meta name="description" content="Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/03_the_naive_copy/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/03_the_naive_copy/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="The Naive Copy ; Scalar vs. Vectorized Memory Movement">
     <meta property="og:description" content="Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/03_the_naive_copy/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/03_the_naive_copy/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-02-22">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="The Naive Copy ; Scalar vs. Vectorized Memory Movement">
     <meta name="twitter:description" content="Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.">
-    <link rel="alternate" type="text/markdown" href="/blog/03_the_naive_copy/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/03_the_naive_copy/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/03_the_naive_copy/"
+    "@id": "https://www.dcbaslani.xyz/blog/03_the_naive_copy/"
   },
   "keywords": "CUDA",
   "wordCount": 1781,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="the-naive-copy--scalar-vs-vectorized-memory-movement">The Naive Copy ;  Scalar vs. Vectorized Memory Movement</h1>
 <p><strong>Difficulty:</strong> Beginner
-<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing">Tutorial 02: The Art of Slicing</a>, basic CUDA memory model</p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/">Tutorial 02: The Art of Slicing</a>, basic CUDA memory model</p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>You&#39;ve partitioned your matrix beautifully. Every thread knows which elements it owns. Now it needs to actually <em>move</em> data ;  from global memory to shared memory, or from shared memory to registers. The simplest approach: a <code>for</code> loop that copies one <code>float</code> at a time.</p>
 <pre><code class="language-cpp">// The &quot;obvious&quot; way ;  one element per iteration

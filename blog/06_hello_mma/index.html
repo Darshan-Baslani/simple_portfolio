@@ -6,7 +6,7 @@
     <title>Hello, MMA ;  Your First Tensor Core Instruction — Darshan Baslani</title>
     <meta name="description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/06_hello_mma/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/06_hello_mma/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Hello, MMA ;  Your First Tensor Core Instruction">
     <meta property="og:description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/06_hello_mma/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/06_hello_mma/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-03-03">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="Hello, MMA ;  Your First Tensor Core Instruction">
     <meta name="twitter:description" content="How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.">
-    <link rel="alternate" type="text/markdown" href="/blog/06_hello_mma/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/06_hello_mma/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/06_hello_mma/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/06_hello_mma/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/06_hello_mma/"
+    "@id": "https://www.dcbaslani.xyz/blog/06_hello_mma/"
   },
   "keywords": "CUDA",
   "wordCount": 3268,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="hello-mma--your-first-tensor-core-instruction">Hello, MMA ;  Your First Tensor Core Instruction</h1>
 <p><strong>Difficulty:</strong> Intermediate
-<strong>Prerequisites:</strong> <a href="/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a> (same partition API pattern)</p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a> (same partition API pattern)</p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorials 03–05 were about <em>moving data</em> ;  getting floats from global memory into shared memory, fast and conflict-free. But at some point, you need to actually <em>compute</em>. On modern NVIDIA GPUs, the fastest math unit isn&#39;t the CUDA core ;  it&#39;s the <strong>Tensor Core</strong>.</p>
 <p>A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 <code>mma.sync.aligned.m16n8k16</code> instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix ;  <strong>2048 multiply-adds in a single instruction</strong>, across all 32 threads of a warp. (Note: this instruction has a latency of 20+ cycles; &quot;single instruction&quot; means one issue slot, not one clock cycle. See <em>Hardware note ;  throughput</em> below.)</p>

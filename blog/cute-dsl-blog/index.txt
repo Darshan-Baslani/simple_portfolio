@@ -1,6 +1,6 @@
 # Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry
 
-- Source: https://darshanbaslani.com/blog/cute-dsl-blog/
+- Source: https://www.dcbaslani.xyz/blog/cute-dsl-blog/
 - Published: 2026-04-19
 - Topic: CUDA
 - Description: Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.

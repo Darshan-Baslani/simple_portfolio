@@ -6,7 +6,7 @@
     <title>The Art of Slicing ; Partitioning Data Across Blocks and Threads — Darshan Baslani</title>
     <meta name="description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/02_the_art_of_slicing/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="The Art of Slicing ; Partitioning Data Across Blocks and Threads">
     <meta property="og:description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/02_the_art_of_slicing/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2025-06-20">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="The Art of Slicing ; Partitioning Data Across Blocks and Threads">
     <meta name="twitter:description" content="How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.">
-    <link rel="alternate" type="text/markdown" href="/blog/02_the_art_of_slicing/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/02_the_art_of_slicing/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/02_the_art_of_slicing/"
+    "@id": "https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/"
   },
   "keywords": "CUDA",
   "wordCount": 1513,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="the-art-of-slicing--partitioning-data-across-blocks-and-threads">The Art of Slicing ;  Partitioning Data Across Blocks and Threads</h1>
 <p><strong>Difficulty:</strong> Beginner
-<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, CUDA thread blocks (<code>blockIdx</code>, <code>threadIdx</code>)</p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, CUDA thread blocks (<code>blockIdx</code>, <code>threadIdx</code>)</p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>You have a big matrix ;  say 512×512 ;  sitting in global memory. Your GPU launches a grid of thread blocks, each of which should work on a small tile (e.g., 128×128). Inside each block, 256 threads need to split <em>that</em> tile further so every thread handles its own little piece.</p>
 <p>Without CuTe, you write something like:</p>
@@ -419,7 +419,7 @@ Thread 0 owns elements: 0 1 8 9
 <li><strong><code>local_partition</code></strong> = The dealer at each table divides the cards among the <em>players</em> (threads). &quot;Player 0, you get these 4 cards.&quot;</li>
 <li><strong><code>zipped_divide</code></strong> = The reorganization step that makes dealing possible. It splits the deck into <code>((hand), (tables))</code> so you can ask for any specific table&#39;s hand in one shot.</li>
 </ol>
-<p>The key invariant: <strong>every element is owned by exactly one block and exactly one thread within that block.</strong> No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the <a href="/blog/0y_predication/">predication tutorial</a> for handling remainders).</p>
+<p>The key invariant: <strong>every element is owned by exactly one block and exactly one thread within that block.</strong> No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the <a href="https://www.dcbaslani.xyz/blog/0y_predication/">predication tutorial</a> for handling remainders).</p>
 <p><strong>Hardware Note:</strong> On Hopper/B200, the tile coordinate you compute with <code>local_tile</code> is the <em>same</em> coordinate you pass to <code>cute::copy</code> with a TMA atom. The TMA engine uses the descriptor&#39;s shape/stride (from Tutorial 01) and this coordinate to DMA the right tile into shared memory ;  zero address math in registers.</p>
 <p><strong>The <code>local_tile</code> / <code>local_partition</code> Cheat-Sheet:</strong></p>
 <table>

@@ -6,7 +6,7 @@
     <title>Swizzling ; Avoiding Shared Memory Bank Conflicts — Darshan Baslani</title>
     <meta name="description" content="How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/05_swizzling/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/05_swizzling/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Swizzling ; Avoiding Shared Memory Bank Conflicts">
     <meta property="og:description" content="How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/05_swizzling/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/05_swizzling/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-02-26">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="Swizzling ; Avoiding Shared Memory Bank Conflicts">
     <meta name="twitter:description" content="How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.">
-    <link rel="alternate" type="text/markdown" href="/blog/05_swizzling/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/05_swizzling/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/05_swizzling/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/05_swizzling/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/05_swizzling/"
+    "@id": "https://www.dcbaslani.xyz/blog/05_swizzling/"
   },
   "keywords": "CUDA",
   "wordCount": 3181,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="swizzling--avoiding-shared-memory-bank-conflicts">Swizzling ;  Avoiding Shared Memory Bank Conflicts</h1>
 <p><strong>Difficulty:</strong> Intermediate
-<strong>Prerequisites:</strong> <a href="/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a>, basic shared memory understanding</p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a>, basic shared memory understanding</p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 04&#39;s <code>TiledCopy</code> moves data from global to shared memory ;  32 threads, 128-bit vectorized stores, zero coordination issues. Beautiful.</p>
 <p>But there&#39;s a hidden trap. Shared memory isn&#39;t one big flat buffer. It&#39;s split into <strong>32 banks</strong>, each serving one 4-byte access per cycle. When two threads in the same warp access the <em>same bank</em> at the <em>same time</em> (different addresses within that bank), the hardware serializes their accesses. This is a <strong>bank conflict</strong>. An N-way conflict means N sequential accesses instead of 1 ;  your shared memory bandwidth drops to 1/N.</p>

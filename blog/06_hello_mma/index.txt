@@ -1,6 +1,6 @@
 # Hello, MMA — Your First Tensor Core Instruction
 
-- Source: https://darshanbaslani.com/blog/06_hello_mma/
+- Source: https://www.dcbaslani.xyz/blog/06_hello_mma/
 - Published: 2026-03-03
 - Topic: CUDA
 - Description: How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.
@@ -10,7 +10,7 @@
 # Hello, MMA ;  Your First Tensor Core Instruction
 
 **Difficulty:** Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/) (same partition API pattern)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/) (same partition API pattern)
 
 ## 1. The Problem (The "Why")
 

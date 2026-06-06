@@ -1,6 +1,6 @@
 # The Parallel Copy ; Orchestrating Threads with TiledCopy
 
-- Source: https://darshanbaslani.com/blog/04_the_parallel_copy/
+- Source: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/
 - Published: 2026-02-24
 - Topic: CUDA
 - Description: How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.
@@ -10,7 +10,7 @@
 # The Parallel Copy ;  Orchestrating Threads with TiledCopy
 
 **Difficulty:** Beginner–Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog/03_the_naive_copy/)
 
 ## 1. The Problem (The "Why")
 

@@ -1,87 +1,261 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://darshanbaslani.com/</loc>
+        <loc>https://www.dcbaslani.xyz/</loc>
         <lastmod>2026-06-06</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/</loc>
         <lastmod>2026-06-06</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/01_hello_layout/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/01_hello_layout/</loc>
         <lastmod>2025-06-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/02_the_art_of_slicing/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/01_hello_layout/index.md</loc>
+        <lastmod>2025-06-15</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/01_hello_layout/index.txt</loc>
+        <lastmod>2025-06-15</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/</loc>
         <lastmod>2025-06-20</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/03_the_naive_copy/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.md</loc>
+        <lastmod>2025-06-20</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.txt</loc>
+        <lastmod>2025-06-20</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/03_the_naive_copy/</loc>
         <lastmod>2026-02-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/04_the_parallel_copy/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.md</loc>
+        <lastmod>2026-02-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.txt</loc>
+        <lastmod>2026-02-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/04_the_parallel_copy/</loc>
         <lastmod>2026-02-24</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/05_swizzling/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.md</loc>
+        <lastmod>2026-02-24</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.txt</loc>
+        <lastmod>2026-02-24</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/05_swizzling/</loc>
         <lastmod>2026-02-26</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/06_hello_mma/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/05_swizzling/index.md</loc>
+        <lastmod>2026-02-26</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/05_swizzling/index.txt</loc>
+        <lastmod>2026-02-26</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/06_hello_mma/</loc>
         <lastmod>2026-03-03</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/07_the_global_gemm/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/06_hello_mma/index.md</loc>
+        <lastmod>2026-03-03</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/06_hello_mma/index.txt</loc>
+        <lastmod>2026-03-03</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/07_the_global_gemm/</loc>
         <lastmod>2026-03-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/08_the_tma_revolution/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.md</loc>
+        <lastmod>2026-03-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.txt</loc>
+        <lastmod>2026-03-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/08_the_tma_revolution/</loc>
         <lastmod>2026-03-23</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/09_wgmma/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.md</loc>
+        <lastmod>2026-03-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.txt</loc>
+        <lastmod>2026-03-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/09_wgmma/</loc>
         <lastmod>2026-04-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/cute-dsl-blog/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/09_wgmma/index.md</loc>
+        <lastmod>2026-04-04</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/09_wgmma/index.txt</loc>
+        <lastmod>2026-04-04</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/cute-dsl-blog/</loc>
         <lastmod>2026-04-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/qwen_3.5/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.md</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.txt</loc>
+        <lastmod>2026-04-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/qwen_3.5/</loc>
         <lastmod>2026-05-25</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://darshanbaslani.com/blog/gpu_masterclass/</loc>
+        <loc>https://www.dcbaslani.xyz/blog/qwen_3.5/index.md</loc>
+        <lastmod>2026-05-25</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/qwen_3.5/index.txt</loc>
+        <lastmod>2026-05-25</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/gpu_masterclass/</loc>
         <lastmod>2026-06-05</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/gpu_masterclass/index.md</loc>
+        <lastmod>2026-06-05</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/gpu_masterclass/index.txt</loc>
+        <lastmod>2026-06-05</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/llms.txt</loc>
+        <lastmod>2026-06-06</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/llms-full.txt</loc>
+        <lastmod>2026-06-06</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/llms.txt</loc>
+        <lastmod>2026-06-06</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/index.md</loc>
+        <lastmod>2026-06-06</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://www.dcbaslani.xyz/blog/index.txt</loc>
+        <lastmod>2026-06-06</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
     </url>
 </urlset>

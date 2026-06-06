@@ -1,6 +1,6 @@
 # The Global GEMM — Putting It All Together
 
-- Source: https://darshanbaslani.com/blog/07_the_global_gemm/
+- Source: https://www.dcbaslani.xyz/blog/07_the_global_gemm/
 - Published: 2026-03-07
 - Topic: CUDA
 - Description: Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.
@@ -10,7 +10,7 @@
 # The Global GEMM ;  Putting It All Together
 
 **Difficulty:** Intermediate–Advanced
-**Prerequisites:** [Tutorial 02: Partitioning](/blog/02_the_art_of_slicing/), [Tutorial 04: TiledCopy](/blog/04_the_parallel_copy/), [Tutorial 05: Swizzling](/blog/05_swizzling/), [Tutorial 06: Hello, MMA](/blog/06_hello_mma/)
+**Prerequisites:** [Tutorial 02: Partitioning](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), [Tutorial 04: TiledCopy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/), [Tutorial 05: Swizzling](https://www.dcbaslani.xyz/blog/05_swizzling/), [Tutorial 06: Hello, MMA](https://www.dcbaslani.xyz/blog/06_hello_mma/)
 
 ## 1. The Problem (The "Why")
 

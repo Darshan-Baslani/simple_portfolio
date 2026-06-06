@@ -6,7 +6,7 @@
     <title>The Global GEMM ;  Putting It All Together — Darshan Baslani</title>
     <meta name="description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/07_the_global_gemm/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/07_the_global_gemm/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="The Global GEMM ;  Putting It All Together">
     <meta property="og:description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/07_the_global_gemm/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/07_the_global_gemm/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-03-07">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="The Global GEMM ;  Putting It All Together">
     <meta name="twitter:description" content="Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.">
-    <link rel="alternate" type="text/markdown" href="/blog/07_the_global_gemm/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/07_the_global_gemm/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/07_the_global_gemm/"
+    "@id": "https://www.dcbaslani.xyz/blog/07_the_global_gemm/"
   },
   "keywords": "CUDA",
   "wordCount": 3308,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="the-global-gemm--putting-it-all-together">The Global GEMM ;  Putting It All Together</h1>
 <p><strong>Difficulty:</strong> Intermediate–Advanced
-<strong>Prerequisites:</strong> <a href="/blog/02_the_art_of_slicing/">Tutorial 02: Partitioning</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: TiledCopy</a>, <a href="/blog/05_swizzling/">Tutorial 05: Swizzling</a>, <a href="/blog/06_hello_mma/">Tutorial 06: Hello, MMA</a></p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/">Tutorial 02: Partitioning</a>, <a href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">Tutorial 04: TiledCopy</a>, <a href="https://www.dcbaslani.xyz/blog/05_swizzling/">Tutorial 05: Swizzling</a>, <a href="https://www.dcbaslani.xyz/blog/06_hello_mma/">Tutorial 06: Hello, MMA</a></p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 06 triggered a single Tensor Core instruction on a 16×8×16 (M×N×K) micro-tile. That&#39;s 2048 multiply-adds ;  impressive for one instruction, but real-world matrices are thousands of elements wide. You need to compute C(M×N) = A(M×K) × Bᵀ(N×K) where M, N, and K can each be 4096 or more.</p>
 <p>The answer isn&#39;t one giant instruction. It&#39;s <strong>tiling</strong> ;  the same idea from Tutorial 02, now applied at every level:</p>

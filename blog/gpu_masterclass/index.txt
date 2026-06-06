@@ -1,6 +1,6 @@
 # The Feynman GPU Lectures
 
-- Source: https://darshanbaslani.com/blog/gpu_masterclass/
+- Source: https://www.dcbaslani.xyz/blog/gpu_masterclass/
 - Published: 2026-06-05
 - Topic: CUDA
 - Description: A GPU masterclass that builds from transistors and CUDA cores up through SM architecture, memory systems, Tensor Cores, Hopper, and Blackwell.

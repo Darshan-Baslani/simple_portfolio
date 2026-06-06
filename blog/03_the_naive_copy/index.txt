@@ -1,6 +1,6 @@
 # The Naive Copy ; Scalar vs. Vectorized Memory Movement
 
-- Source: https://darshanbaslani.com/blog/03_the_naive_copy/
+- Source: https://www.dcbaslani.xyz/blog/03_the_naive_copy/
 - Published: 2026-02-22
 - Topic: CUDA
 - Description: Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.
@@ -10,7 +10,7 @@
 # The Naive Copy ;  Scalar vs. Vectorized Memory Movement
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), basic CUDA memory model
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), basic CUDA memory model
 
 ## 1. The Problem (The "Why")
 

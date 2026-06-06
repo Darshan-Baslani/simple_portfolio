@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "node generate_blogs.js"
+  },
   "dependencies": {
     "marked": "^17.0.3"
   }

@@ -5,7 +5,7 @@ const { marked } = require('marked');
 const ROOT_DIR = __dirname;
 const BLOG_DIR = path.join(ROOT_DIR, 'blog');
 const BLOGS_DATA_DIR = path.join(ROOT_DIR, 'blogs');
-const SITE_URL = 'https://darshanbaslani.com';
+const SITE_URL = (process.env.SITE_URL || 'https://www.dcbaslani.xyz').replace(/\/+$/, '');
 
 // Read manifest
 const manifestPath = path.join(BLOGS_DATA_DIR, 'manifest.json');
@@ -137,6 +137,15 @@ function restoreMath(html, mathBlocks) {
 
 function buildMirrorDocument(post, mdText, sourceUrl) {
     return `# ${post.title}\n\n- Source: ${sourceUrl}\n- Published: ${post.date}\n- Topic: ${post.tag}\n- Description: ${post.description}\n\n---\n\n${mdText.trim()}\n`;
+}
+
+function rewriteMarkdownLinks(mdText) {
+    return mdText
+        // Rewrite legacy query-string blog URLs into static post URLs.
+        .replace(/https?:\/\/(?:www\.)?dcbaslani\.xyz\/blog\.html\?post=([a-zA-Z0-9_.-]+)/g, `${SITE_URL}/blog/$1/`)
+        .replace(/https?:\/\/darshanbaslani\.com\/blog\.html\?post=([a-zA-Z0-9_.-]+)/g, `${SITE_URL}/blog/$1/`)
+        // Rewrite relative markdown links to point to the static /blog/slug/ URLs.
+        .replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, `](${SITE_URL}/blog/$1/)`);
 }
 
 function buildBlogIndexMirror(entries) {
@@ -447,8 +456,8 @@ const llmEntries = [];
 const blogPostTemplate = (slug, post, renderedHtml, readMin) => {
     const title = post.title.replaceAll('—', '; ');
     const postUrl = `${SITE_URL}/blog/${slug}/`;
-    const mdUrl = `/blog/${slug}/index.md`;
-    const txtUrl = `/blog/${slug}/index.txt`;
+    const mdUrl = `${postUrl}index.md`;
+    const txtUrl = `${postUrl}index.txt`;
     const dateFormatted = formatDate(post.date);
 
     // JSON-LD for individual blog post
@@ -781,8 +790,7 @@ for (const post of manifest.posts) {
     const mdPath = path.join(BLOGS_DATA_DIR, `${post.slug}.md`);
     let mdText = fs.readFileSync(mdPath, 'utf8');
     mdText = mdText.replaceAll('—', '; ');
-    // Rewrite relative markdown links to point to the new /blog/slug/ URLs
-    mdText = mdText.replace(/\]\((?:\.\/|\.\.\/)?([a-zA-Z0-9_-]+)\.md\)/g, '](/blog/$1/)');
+    mdText = rewriteMarkdownLinks(mdText);
 
     // Pre-process: protect math expressions from markdown parser
     const { md: processedMd, mathBlocks } = preprocessMath(mdText);
@@ -801,8 +809,8 @@ for (const post of manifest.posts) {
     console.log(`Generated blog/${post.slug}/index.html (SSR, ${readMin} min read)`);
 
     const postUrl = `${SITE_URL}/blog/${post.slug}/`;
-    const mdUrl = `/blog/${post.slug}/index.md`;
-    const txtUrl = `/blog/${post.slug}/index.txt`;
+    const mdUrl = `${postUrl}index.md`;
+    const txtUrl = `${postUrl}index.txt`;
     const mirrorDoc = buildMirrorDocument(post, mdText, postUrl);
     fs.writeFileSync(path.join(postDir, 'index.md'), mirrorDoc);
     fs.writeFileSync(path.join(postDir, 'index.txt'), mirrorDoc);
@@ -868,8 +876,52 @@ for (const post of manifest.posts) {
         <lastmod>${post.date}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/${post.slug}/index.md</loc>
+        <lastmod>${post.date}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/${post.slug}/index.txt</loc>
+        <lastmod>${post.date}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
     </url>`;
 }
+
+sitemapUrls += `
+    <url>
+        <loc>${SITE_URL}/llms.txt</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/llms-full.txt</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/llms.txt</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/index.md</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>${SITE_URL}/blog/index.txt</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>`;
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -879,5 +931,32 @@ ${sitemapUrls}
 
 fs.writeFileSync(path.join(ROOT_DIR, 'sitemap.xml'), sitemap);
 console.log('Generated sitemap.xml');
+
+const robots = `User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: ${SITE_URL}/sitemap.xml
+`;
+
+fs.writeFileSync(path.join(ROOT_DIR, 'robots.txt'), robots);
+console.log('Generated robots.txt');
 
 console.log('\n✅ All blog pages generated with SSR + SEO meta tags + sitemap');

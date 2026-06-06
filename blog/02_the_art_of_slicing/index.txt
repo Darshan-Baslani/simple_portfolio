@@ -1,6 +1,6 @@
 # The Art of Slicing ; Partitioning Data Across Blocks and Threads
 
-- Source: https://darshanbaslani.com/blog/02_the_art_of_slicing/
+- Source: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/
 - Published: 2025-06-20
 - Topic: CUDA
 - Description: How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.
@@ -10,7 +10,7 @@
 # The Art of Slicing ;  Partitioning Data Across Blocks and Threads
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), CUDA thread blocks (`blockIdx`, `threadIdx`)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), CUDA thread blocks (`blockIdx`, `threadIdx`)
 
 ## 1. The Problem (The "Why")
 
@@ -216,7 +216,7 @@ Block (0,0) gets the top-left 4×4 tile (addresses 0–3 down column 0, 8–11 d
 2. **`local_partition`** = The dealer at each table divides the cards among the *players* (threads). "Player 0, you get these 4 cards."
 3. **`zipped_divide`** = The reorganization step that makes dealing possible. It splits the deck into `((hand), (tables))` so you can ask for any specific table's hand in one shot.
 
-The key invariant: **every element is owned by exactly one block and exactly one thread within that block.** No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the [predication tutorial](/blog/0y_predication/) for handling remainders).
+The key invariant: **every element is owned by exactly one block and exactly one thread within that block.** No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the [predication tutorial](https://www.dcbaslani.xyz/blog/0y_predication/) for handling remainders).
 
 **Hardware Note:** On Hopper/B200, the tile coordinate you compute with `local_tile` is the *same* coordinate you pass to `cute::copy` with a TMA atom. The TMA engine uses the descriptor's shape/stride (from Tutorial 01) and this coordinate to DMA the right tile into shared memory ;  zero address math in registers.
 

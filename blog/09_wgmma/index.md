@@ -1,6 +1,6 @@
 # WGMMA ; Warpgroup MMA
 
-- Source: https://darshanbaslani.com/blog/09_wgmma/
+- Source: https://www.dcbaslani.xyz/blog/09_wgmma/
 - Published: 2026-04-04
 - Topic: CUDA
 - Description: How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.

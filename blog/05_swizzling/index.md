@@ -1,6 +1,6 @@
 # Swizzling ; Avoiding Shared Memory Bank Conflicts
 
-- Source: https://darshanbaslani.com/blog/05_swizzling/
+- Source: https://www.dcbaslani.xyz/blog/05_swizzling/
 - Published: 2026-02-26
 - Topic: CUDA
 - Description: How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.
@@ -10,7 +10,7 @@
 # Swizzling ;  Avoiding Shared Memory Bank Conflicts
 
 **Difficulty:** Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/), basic shared memory understanding
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/), basic shared memory understanding
 
 ## 1. The Problem (The "Why")
 

@@ -4,9 +4,9 @@ This file aggregates the readable source for every blog post on the site.
 
 # Hello, Layout! ; Visualizing Memory in CuTe
 
-- URL: https://darshanbaslani.com/blog/01_hello_layout/
-- Markdown: /blog/01_hello_layout/index.md
-- Text: /blog/01_hello_layout/index.txt
+- URL: https://www.dcbaslani.xyz/blog/01_hello_layout/
+- Markdown: https://www.dcbaslani.xyz/blog/01_hello_layout/index.md
+- Text: https://www.dcbaslani.xyz/blog/01_hello_layout/index.txt
 - Published: 2025-06-15
 - Topic: CUDA
 - Description: Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.
@@ -198,9 +198,9 @@ Layout: (_2,_4):(_8,_1)
 
 # The Art of Slicing ; Partitioning Data Across Blocks and Threads
 
-- URL: https://darshanbaslani.com/blog/02_the_art_of_slicing/
-- Markdown: /blog/02_the_art_of_slicing/index.md
-- Text: /blog/02_the_art_of_slicing/index.txt
+- URL: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/
+- Markdown: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.md
+- Text: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.txt
 - Published: 2025-06-20
 - Topic: CUDA
 - Description: How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.
@@ -208,7 +208,7 @@ Layout: (_2,_4):(_8,_1)
 # The Art of Slicing ;  Partitioning Data Across Blocks and Threads
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), CUDA thread blocks (`blockIdx`, `threadIdx`)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), CUDA thread blocks (`blockIdx`, `threadIdx`)
 
 ## 1. The Problem (The "Why")
 
@@ -414,7 +414,7 @@ Block (0,0) gets the top-left 4×4 tile (addresses 0–3 down column 0, 8–11 d
 2. **`local_partition`** = The dealer at each table divides the cards among the *players* (threads). "Player 0, you get these 4 cards."
 3. **`zipped_divide`** = The reorganization step that makes dealing possible. It splits the deck into `((hand), (tables))` so you can ask for any specific table's hand in one shot.
 
-The key invariant: **every element is owned by exactly one block and exactly one thread within that block.** No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the [predication tutorial](/blog/0y_predication/) for handling remainders).
+The key invariant: **every element is owned by exactly one block and exactly one thread within that block.** No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the [predication tutorial](https://www.dcbaslani.xyz/blog/0y_predication/) for handling remainders).
 
 **Hardware Note:** On Hopper/B200, the tile coordinate you compute with `local_tile` is the *same* coordinate you pass to `cute::copy` with a TMA atom. The TMA engine uses the descriptor's shape/stride (from Tutorial 01) and this coordinate to DMA the right tile into shared memory ;  zero address math in registers.
 
@@ -438,9 +438,9 @@ zipped_divide(data, tiler)  →  ((Tile), (Rest))
 
 # The Naive Copy ; Scalar vs. Vectorized Memory Movement
 
-- URL: https://darshanbaslani.com/blog/03_the_naive_copy/
-- Markdown: /blog/03_the_naive_copy/index.md
-- Text: /blog/03_the_naive_copy/index.txt
+- URL: https://www.dcbaslani.xyz/blog/03_the_naive_copy/
+- Markdown: https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.md
+- Text: https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.txt
 - Published: 2026-02-22
 - Topic: CUDA
 - Description: Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.
@@ -448,7 +448,7 @@ zipped_divide(data, tiler)  →  ((Tile), (Rest))
 # The Naive Copy ;  Scalar vs. Vectorized Memory Movement
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), basic CUDA memory model
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), basic CUDA memory model
 
 ## 1. The Problem (The "Why")
 
@@ -709,9 +709,9 @@ If you use a strided layout (e.g., stride-2 between elements), `max_common_vecto
 
 # The Parallel Copy ; Orchestrating Threads with TiledCopy
 
-- URL: https://darshanbaslani.com/blog/04_the_parallel_copy/
-- Markdown: /blog/04_the_parallel_copy/index.md
-- Text: /blog/04_the_parallel_copy/index.txt
+- URL: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/
+- Markdown: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.md
+- Text: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.txt
 - Published: 2026-02-24
 - Topic: CUDA
 - Description: How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.
@@ -719,7 +719,7 @@ If you use a strided layout (e.g., stride-2 between elements), `max_common_vecto
 # The Parallel Copy ;  Orchestrating Threads with TiledCopy
 
 **Difficulty:** Beginner–Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog/03_the_naive_copy/)
 
 ## 1. The Problem (The "Why")
 
@@ -1109,9 +1109,9 @@ If the atom's 4-element chunk lands on non-contiguous addresses, the hardware ca
 
 # Swizzling ; Avoiding Shared Memory Bank Conflicts
 
-- URL: https://darshanbaslani.com/blog/05_swizzling/
-- Markdown: /blog/05_swizzling/index.md
-- Text: /blog/05_swizzling/index.txt
+- URL: https://www.dcbaslani.xyz/blog/05_swizzling/
+- Markdown: https://www.dcbaslani.xyz/blog/05_swizzling/index.md
+- Text: https://www.dcbaslani.xyz/blog/05_swizzling/index.txt
 - Published: 2026-02-26
 - Topic: CUDA
 - Description: How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.
@@ -1119,7 +1119,7 @@ If the atom's 4-element chunk lands on non-contiguous addresses, the hardware ca
 # Swizzling ;  Avoiding Shared Memory Bank Conflicts
 
 **Difficulty:** Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/), basic shared memory understanding
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/), basic shared memory understanding
 
 ## 1. The Problem (The "Why")
 
@@ -1531,9 +1531,9 @@ auto s_tensor = make_tensor(make_smem_ptr(smem), smem_layout);
 
 # Hello, MMA — Your First Tensor Core Instruction
 
-- URL: https://darshanbaslani.com/blog/06_hello_mma/
-- Markdown: /blog/06_hello_mma/index.md
-- Text: /blog/06_hello_mma/index.txt
+- URL: https://www.dcbaslani.xyz/blog/06_hello_mma/
+- Markdown: https://www.dcbaslani.xyz/blog/06_hello_mma/index.md
+- Text: https://www.dcbaslani.xyz/blog/06_hello_mma/index.txt
 - Published: 2026-03-03
 - Topic: CUDA
 - Description: How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.
@@ -1541,7 +1541,7 @@ auto s_tensor = make_tensor(make_smem_ptr(smem), smem_layout);
 # Hello, MMA ;  Your First Tensor Core Instruction
 
 **Difficulty:** Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/) (same partition API pattern)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/) (same partition API pattern)
 
 ## 1. The Problem (The "Why")
 
@@ -1968,9 +1968,9 @@ On A100, each SM has 4 partitions (sub-partitions / warp schedulers), so the SM-
 
 # The Global GEMM — Putting It All Together
 
-- URL: https://darshanbaslani.com/blog/07_the_global_gemm/
-- Markdown: /blog/07_the_global_gemm/index.md
-- Text: /blog/07_the_global_gemm/index.txt
+- URL: https://www.dcbaslani.xyz/blog/07_the_global_gemm/
+- Markdown: https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.md
+- Text: https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.txt
 - Published: 2026-03-07
 - Topic: CUDA
 - Description: Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.
@@ -1978,7 +1978,7 @@ On A100, each SM has 4 partitions (sub-partitions / warp schedulers), so the SM-
 # The Global GEMM ;  Putting It All Together
 
 **Difficulty:** Intermediate–Advanced
-**Prerequisites:** [Tutorial 02: Partitioning](/blog/02_the_art_of_slicing/), [Tutorial 04: TiledCopy](/blog/04_the_parallel_copy/), [Tutorial 05: Swizzling](/blog/05_swizzling/), [Tutorial 06: Hello, MMA](/blog/06_hello_mma/)
+**Prerequisites:** [Tutorial 02: Partitioning](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), [Tutorial 04: TiledCopy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/), [Tutorial 05: Swizzling](https://www.dcbaslani.xyz/blog/05_swizzling/), [Tutorial 06: Hello, MMA](https://www.dcbaslani.xyz/blog/06_hello_mma/)
 
 ## 1. The Problem (The "Why")
 
@@ -2518,9 +2518,9 @@ On A100 with 512×512×256, expect 5–15 TFLOPS (vs. ~150 TFLOPS peak for cuBLA
 
 # The TMA Revolution (Async Copy)
 
-- URL: https://darshanbaslani.com/blog/08_the_tma_revolution/
-- Markdown: /blog/08_the_tma_revolution/index.md
-- Text: /blog/08_the_tma_revolution/index.txt
+- URL: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/
+- Markdown: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.md
+- Text: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.txt
 - Published: 2026-03-23
 - Topic: CUDA
 - Description: With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.
@@ -2528,7 +2528,7 @@ On A100 with 512×512×256, expect 5–15 TFLOPS (vs. ~150 TFLOPS peak for cuBLA
 # The TMA Revolution (Async Copy)
 
 **Difficulty:** Advanced
-**Prerequisites:** [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/)
+**Prerequisites:** [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/)
 
 ## 1. The Problem (The "Why")
 "The CPU is wasting time calculating addresses for copies. Let the hardware do it."
@@ -2679,9 +2679,9 @@ Line `Bar::wait(...)`: Because the forklift works asynchronously, we must wait a
 
 # WGMMA ; Warpgroup MMA
 
-- URL: https://darshanbaslani.com/blog/09_wgmma/
-- Markdown: /blog/09_wgmma/index.md
-- Text: /blog/09_wgmma/index.txt
+- URL: https://www.dcbaslani.xyz/blog/09_wgmma/
+- Markdown: https://www.dcbaslani.xyz/blog/09_wgmma/index.md
+- Text: https://www.dcbaslani.xyz/blog/09_wgmma/index.txt
 - Published: 2026-04-04
 - Topic: CUDA
 - Description: How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.
@@ -2768,9 +2768,9 @@ Hardware Note: On Hopper (SM90), WGMMA requires exactly 128 threads. You cannot 
 
 # Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry
 
-- URL: https://darshanbaslani.com/blog/cute-dsl-blog/
-- Markdown: /blog/cute-dsl-blog/index.md
-- Text: /blog/cute-dsl-blog/index.txt
+- URL: https://www.dcbaslani.xyz/blog/cute-dsl-blog/
+- Markdown: https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.md
+- Text: https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.txt
 - Published: 2026-04-19
 - Topic: CUDA
 - Description: Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.
@@ -2991,9 +2991,9 @@ Time to fire up your GPUs!
 
 # Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5
 
-- URL: https://darshanbaslani.com/blog/qwen_3.5/
-- Markdown: /blog/qwen_3.5/index.md
-- Text: /blog/qwen_3.5/index.txt
+- URL: https://www.dcbaslani.xyz/blog/qwen_3.5/
+- Markdown: https://www.dcbaslani.xyz/blog/qwen_3.5/index.md
+- Text: https://www.dcbaslani.xyz/blog/qwen_3.5/index.txt
 - Published: 2026-05-25
 - Topic: Triton
 - Description: Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.
@@ -3566,9 +3566,9 @@ Writing high-performance GPU kernels is mostly about respecting the memory hiera
 
 # The Feynman GPU Lectures
 
-- URL: https://darshanbaslani.com/blog/gpu_masterclass/
-- Markdown: /blog/gpu_masterclass/index.md
-- Text: /blog/gpu_masterclass/index.txt
+- URL: https://www.dcbaslani.xyz/blog/gpu_masterclass/
+- Markdown: https://www.dcbaslani.xyz/blog/gpu_masterclass/index.md
+- Text: https://www.dcbaslani.xyz/blog/gpu_masterclass/index.txt
 - Published: 2026-06-05
 - Topic: CUDA
 - Description: A GPU masterclass that builds from transistors and CUDA cores up through SM architecture, memory systems, Tensor Cores, Hopper, and Blackwell.

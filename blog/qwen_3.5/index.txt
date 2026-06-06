@@ -1,6 +1,6 @@
 # Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5
 
-- Source: https://darshanbaslani.com/blog/qwen_3.5/
+- Source: https://www.dcbaslani.xyz/blog/qwen_3.5/
 - Published: 2026-05-25
 - Topic: Triton
 - Description: Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.

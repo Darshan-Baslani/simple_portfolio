@@ -6,7 +6,7 @@
     <title>The TMA Revolution (Async Copy) — Darshan Baslani</title>
     <meta name="description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
     <meta name="author" content="Darshan Baslani">
-    <link rel="canonical" href="https://darshanbaslani.com/blog/08_the_tma_revolution/">
+    <link rel="canonical" href="https://www.dcbaslani.xyz/blog/08_the_tma_revolution/">
     <link rel="icon" type="image/webp" href="/icon.webp">
 
     <!-- Early theme application to prevent FOUC -->
@@ -21,7 +21,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="The TMA Revolution (Async Copy)">
     <meta property="og:description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
-    <meta property="og:url" content="https://darshanbaslani.com/blog/08_the_tma_revolution/">
+    <meta property="og:url" content="https://www.dcbaslani.xyz/blog/08_the_tma_revolution/">
     <meta property="og:site_name" content="Darshan Baslani">
     <meta property="article:published_time" content="2026-03-23">
     <meta property="article:author" content="Darshan Baslani">
@@ -32,8 +32,8 @@
     <meta name="twitter:site" content="@neuronfitting">
     <meta name="twitter:title" content="The TMA Revolution (Async Copy)">
     <meta name="twitter:description" content="With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.">
-    <link rel="alternate" type="text/markdown" href="/blog/08_the_tma_revolution/index.md">
-    <link rel="alternate" type="text/plain" href="/blog/08_the_tma_revolution/index.txt">
+    <link rel="alternate" type="text/markdown" href="https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.md">
+    <link rel="alternate" type="text/plain" href="https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.txt">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -47,16 +47,16 @@
   "author": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "publisher": {
     "@type": "Person",
     "name": "Darshan Baslani",
-    "url": "https://darshanbaslani.com"
+    "url": "https://www.dcbaslani.xyz"
   },
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://darshanbaslani.com/blog/08_the_tma_revolution/"
+    "@id": "https://www.dcbaslani.xyz/blog/08_the_tma_revolution/"
   },
   "keywords": "CUDA",
   "wordCount": 858,
@@ -223,7 +223,7 @@
             <div id="blog-content" class="blog-content" itemprop="articleBody">
 <h1 id="the-tma-revolution-async-copy">The TMA Revolution (Async Copy)</h1>
 <p><strong>Difficulty:</strong> Advanced
-<strong>Prerequisites:</strong> <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a></p>
+<strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a></p>
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>&quot;The CPU is wasting time calculating addresses for copies. Let the hardware do it.&quot;</p>
 <p>Until now, we have used <code>TiledCopy</code> to coordinate warps and threads to fetch data from global memory into shared memory. The problem? <strong>Every single thread is computing memory addresses.</strong> For each element loaded, threads execute instructions just to resolve <code>address = coord · stride</code>. This burns registers and arithmetic logic unit (ALU) cycles that should be spent on matrix multiplication.</p>

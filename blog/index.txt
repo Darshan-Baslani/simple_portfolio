@@ -4,75 +4,75 @@ Technical blog posts on CUDA programming, GPU kernel optimization, CuTe, Triton,
 
 ## Posts
 
-- [Hello, Layout! ; Visualizing Memory in CuTe](https://darshanbaslani.com/blog/01_hello_layout/)
+- [Hello, Layout! ; Visualizing Memory in CuTe](https://www.dcbaslani.xyz/blog/01_hello_layout/)
   - Description: Understanding CuTe Layouts: how shape and stride turn flat memory into multidimensional grids.
   - Topic: CUDA
   - Published: 2025-06-15
-  - Markdown: /blog/01_hello_layout/index.md
-  - Text: /blog/01_hello_layout/index.txt
-- [The Art of Slicing ; Partitioning Data Across Blocks and Threads](https://darshanbaslani.com/blog/02_the_art_of_slicing/)
+  - Markdown: https://www.dcbaslani.xyz/blog/01_hello_layout/index.md
+  - Text: https://www.dcbaslani.xyz/blog/01_hello_layout/index.txt
+- [The Art of Slicing ; Partitioning Data Across Blocks and Threads](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/)
   - Description: How CuTe's local_tile and local_partition replace manual index math to slice matrices across CTAs and threads.
   - Topic: CUDA
   - Published: 2025-06-20
-  - Markdown: /blog/02_the_art_of_slicing/index.md
-  - Text: /blog/02_the_art_of_slicing/index.txt
-- [The Naive Copy ; Scalar vs. Vectorized Memory Movement](https://darshanbaslani.com/blog/03_the_naive_copy/)
+  - Markdown: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.md
+  - Text: https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/index.txt
+- [The Naive Copy ; Scalar vs. Vectorized Memory Movement](https://www.dcbaslani.xyz/blog/03_the_naive_copy/)
   - Description: Why scalar copies leave 75% of memory bandwidth on the table, and how CuTe's auto-vectorization fixes it.
   - Topic: CUDA
   - Published: 2026-02-22
-  - Markdown: /blog/03_the_naive_copy/index.md
-  - Text: /blog/03_the_naive_copy/index.txt
-- [The Parallel Copy ; Orchestrating Threads with TiledCopy](https://darshanbaslani.com/blog/04_the_parallel_copy/)
+  - Markdown: https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.md
+  - Text: https://www.dcbaslani.xyz/blog/03_the_naive_copy/index.txt
+- [The Parallel Copy ; Orchestrating Threads with TiledCopy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/)
   - Description: How TiledCopy bundles thread layout, copy atoms, and value layout into one declarative object for coordinated, vectorized parallel copies.
   - Topic: CUDA
   - Published: 2026-02-24
-  - Markdown: /blog/04_the_parallel_copy/index.md
-  - Text: /blog/04_the_parallel_copy/index.txt
-- [Swizzling ; Avoiding Shared Memory Bank Conflicts](https://darshanbaslani.com/blog/05_swizzling/)
+  - Markdown: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.md
+  - Text: https://www.dcbaslani.xyz/blog/04_the_parallel_copy/index.txt
+- [Swizzling ; Avoiding Shared Memory Bank Conflicts](https://www.dcbaslani.xyz/blog/05_swizzling/)
   - Description: How CuTe's Swizzle XORs address bits to eliminate shared memory bank conflicts with a single line of code.
   - Topic: CUDA
   - Published: 2026-02-26
-  - Markdown: /blog/05_swizzling/index.md
-  - Text: /blog/05_swizzling/index.txt
-- [Hello, MMA — Your First Tensor Core Instruction](https://darshanbaslani.com/blog/06_hello_mma/)
+  - Markdown: https://www.dcbaslani.xyz/blog/05_swizzling/index.md
+  - Text: https://www.dcbaslani.xyz/blog/05_swizzling/index.txt
+- [Hello, MMA — Your First Tensor Core Instruction](https://www.dcbaslani.xyz/blog/06_hello_mma/)
   - Description: How to use CuTe's TiledMMA to execute a matrix multiply-accumulate on NVIDIA Tensor Cores.
   - Topic: CUDA
   - Published: 2026-03-03
-  - Markdown: /blog/06_hello_mma/index.md
-  - Text: /blog/06_hello_mma/index.txt
-- [The Global GEMM — Putting It All Together](https://darshanbaslani.com/blog/07_the_global_gemm/)
+  - Markdown: https://www.dcbaslani.xyz/blog/06_hello_mma/index.md
+  - Text: https://www.dcbaslani.xyz/blog/06_hello_mma/index.txt
+- [The Global GEMM — Putting It All Together](https://www.dcbaslani.xyz/blog/07_the_global_gemm/)
   - Description: Writing a complete three-level tiled GEMM kernel from scratch using CuTe's TiledCopy, TiledMMA, and swizzled shared memory.
   - Topic: CUDA
   - Published: 2026-03-07
-  - Markdown: /blog/07_the_global_gemm/index.md
-  - Text: /blog/07_the_global_gemm/index.txt
-- [The TMA Revolution (Async Copy)](https://darshanbaslani.com/blog/08_the_tma_revolution/)
+  - Markdown: https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.md
+  - Text: https://www.dcbaslani.xyz/blog/07_the_global_gemm/index.txt
+- [The TMA Revolution (Async Copy)](https://www.dcbaslani.xyz/blog/08_the_tma_revolution/)
   - Description: With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.
   - Topic: CUDA
   - Published: 2026-03-23
-  - Markdown: /blog/08_the_tma_revolution/index.md
-  - Text: /blog/08_the_tma_revolution/index.txt
-- [WGMMA ; Warpgroup MMA](https://darshanbaslani.com/blog/09_wgmma/)
+  - Markdown: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.md
+  - Text: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/index.txt
+- [WGMMA ; Warpgroup MMA](https://www.dcbaslani.xyz/blog/09_wgmma/)
   - Description: How to use Warpgroup MMA (WGMMA) to feed NVIDIA Tensor Cores directly from shared memory, bypassing the register file bottleneck.
   - Topic: CUDA
   - Published: 2026-04-04
-  - Markdown: /blog/09_wgmma/index.md
-  - Text: /blog/09_wgmma/index.txt
-- [Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry](https://darshanbaslani.com/blog/cute-dsl-blog/)
+  - Markdown: https://www.dcbaslani.xyz/blog/09_wgmma/index.md
+  - Text: https://www.dcbaslani.xyz/blog/09_wgmma/index.txt
+- [Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn't Even Cry](https://www.dcbaslani.xyz/blog/cute-dsl-blog/)
   - Description: Welcome to the ultimate guide to cute-dsl! Bringing the power of CuTe's concepts like Layouts, Tilers, and vectorized memory operations into a familiar, Pythonic interface.
   - Topic: CUDA
   - Published: 2026-04-19
-  - Markdown: /blog/cute-dsl-blog/index.md
-  - Text: /blog/cute-dsl-blog/index.txt
-- [Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5](https://darshanbaslani.com/blog/qwen_3.5/)
+  - Markdown: https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.md
+  - Text: https://www.dcbaslani.xyz/blog/cute-dsl-blog/index.txt
+- [Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5](https://www.dcbaslani.xyz/blog/qwen_3.5/)
   - Description: Rebuilding and optimizing the Qwen 3.5 (9B) Gated Delta Attention inference stack with custom Triton kernels, achieving 5.2x speedup on NVIDIA B200.
   - Topic: Triton
   - Published: 2026-05-25
-  - Markdown: /blog/qwen_3.5/index.md
-  - Text: /blog/qwen_3.5/index.txt
-- [The Feynman GPU Lectures](https://darshanbaslani.com/blog/gpu_masterclass/)
+  - Markdown: https://www.dcbaslani.xyz/blog/qwen_3.5/index.md
+  - Text: https://www.dcbaslani.xyz/blog/qwen_3.5/index.txt
+- [The Feynman GPU Lectures](https://www.dcbaslani.xyz/blog/gpu_masterclass/)
   - Description: A GPU masterclass that builds from transistors and CUDA cores up through SM architecture, memory systems, Tensor Cores, Hopper, and Blackwell.
   - Topic: CUDA
   - Published: 2026-06-05
-  - Markdown: /blog/gpu_masterclass/index.md
-  - Text: /blog/gpu_masterclass/index.txt
+  - Markdown: https://www.dcbaslani.xyz/blog/gpu_masterclass/index.md
+  - Text: https://www.dcbaslani.xyz/blog/gpu_masterclass/index.txt

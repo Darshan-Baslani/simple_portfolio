@@ -1,7 +1,7 @@
 # The Naive Copy — Scalar vs. Vectorized Memory Movement
 
 **Difficulty:** Beginner
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), basic CUDA memory model
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), basic CUDA memory model
 
 ## 1. The Problem (The "Why")
 

@@ -1,7 +1,7 @@
 # The Parallel Copy — Orchestrating Threads with TiledCopy
 
 **Difficulty:** Beginner–Intermediate
-**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog.html?post=01_hello_layout), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy)
+**Prerequisites:** [Tutorial 01: Hello, Layout!](https://www.dcbaslani.xyz/blog/01_hello_layout/), [Tutorial 02: The Art of Slicing](https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/), [Tutorial 03: The Naive Copy](https://www.dcbaslani.xyz/blog/03_the_naive_copy/)
 
 ## 1. The Problem (The "Why")
 

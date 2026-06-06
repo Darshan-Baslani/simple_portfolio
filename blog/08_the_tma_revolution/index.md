@@ -1,6 +1,6 @@
 # The TMA Revolution (Async Copy)
 
-- Source: https://darshanbaslani.com/blog/08_the_tma_revolution/
+- Source: https://www.dcbaslani.xyz/blog/08_the_tma_revolution/
 - Published: 2026-03-23
 - Topic: CUDA
 - Description: With the Hopper and Blackwell architectures, NVIDIA introduced the Tensor Memory Accelerator (TMA). Instead of having threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.
@@ -10,7 +10,7 @@
 # The TMA Revolution (Async Copy)
 
 **Difficulty:** Advanced
-**Prerequisites:** [Tutorial 04: The Parallel Copy](/blog/04_the_parallel_copy/)
+**Prerequisites:** [Tutorial 04: The Parallel Copy](https://www.dcbaslani.xyz/blog/04_the_parallel_copy/)
 
 ## 1. The Problem (The "Why")
 "The CPU is wasting time calculating addresses for copies. Let the hardware do it."
