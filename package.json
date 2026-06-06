@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "node generate_blogs.js"
+    "build": "node generate_blogs.js && node build_public.js"
   },
   "dependencies": {
     "marked": "^17.0.3"
