@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/06_hello_mma/"
   },
   "keywords": "CUDA",
-  "wordCount": 3259,
+  "wordCount": 3268,
   "timeRequired": "PT17M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>Hello, MMA ;  Your First Tensor Core Instruction</h1>
+<h1 id="hello-mma--your-first-tensor-core-instruction">Hello, MMA ;  Your First Tensor Core Instruction</h1>
 <p><strong>Difficulty:</strong> Intermediate
 <strong>Prerequisites:</strong> <a href="/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a> (same partition API pattern)</p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorials 03–05 were about <em>moving data</em> ;  getting floats from global memory into shared memory, fast and conflict-free. But at some point, you need to actually <em>compute</em>. On modern NVIDIA GPUs, the fastest math unit isn&#39;t the CUDA core ;  it&#39;s the <strong>Tensor Core</strong>.</p>
 <p>A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 <code>mma.sync.aligned.m16n8k16</code> instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix ;  <strong>2048 multiply-adds in a single instruction</strong>, across all 32 threads of a warp. (Note: this instruction has a latency of 20+ cycles; &quot;single instruction&quot; means one issue slot, not one clock cycle. See <em>Hardware note ;  throughput</em> below.)</p>
 <p>The catch: you can&#39;t just pass pointers. The hardware expects A, B, and C fragments to be distributed across 32 threads in a <strong>very specific register layout</strong>. Thread 0 holds certain rows and columns of A, thread 7 holds others, and the MMA instruction reaches into all 32 threads&#39; registers simultaneously. Get the distribution wrong and you get garbage ;  or a hardware trap.</p>
@@ -255,8 +255,8 @@
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, the same <code>TiledMMA</code> pattern drives WGMMA (Warpgroup MMA) ;  128 threads feeding a larger Tensor Core instruction. Tutorial 09 covers that. The API is identical; only the atom changes.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
-<h3>The Stamping Press</h3>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
+<h3 id="the-stamping-press">The Stamping Press</h3>
 <p>Think of a Tensor Core as a <strong>stamping press</strong> in a factory. You load raw-material trays (A and B fragments) into specific slots, press the button, and out comes the product (C accumulator). The press is fixed-size ;  it always stamps a 16×8 tile of results from 16×16 and 8×16 inputs.</p>
 <pre><code class="language-text">                        ┌─────────────────────────────┐
                         │      STAMPING PRESS          │
@@ -273,7 +273,7 @@
    │  128 values  │     └─────────────────────────────-┘
    └──────────────┘
 </code></pre>
-<h3>Per-Thread Fragment Sizes</h3>
+<h3 id="per-thread-fragment-sizes">Per-Thread Fragment Sizes</h3>
 <p>The 256 values of A, 128 values of B, and 128 values of C are split evenly across 32 threads:</p>
 <pre><code class="language-text">Thread #7 (one of 32):
 ┌────────────────────────────────────────────────────┐
@@ -288,7 +288,7 @@
 └────────────────────────────────────────────────────┘
 </code></pre>
 <p>You don&#39;t need to know the exact register-to-coordinate mapping (it&#39;s in the PTX docs if you&#39;re curious). CuTe&#39;s partition functions handle it transparently ;  just like <code>TiledCopy</code> handles thread-to-element mapping without you memorizing a table.</p>
-<h3>The API Flow</h3>
+<h3 id="the-api-flow">The API Flow</h3>
 <pre><code class="language-text">make_tiled_mma(MMA_Atom&lt;Op&gt;{})
          │
     get_thread_slice(tid)
@@ -307,7 +307,7 @@ copy(smem → reg)      copy(smem → reg)     clear(accum)
                               │
                      copy(accum → gC)
 </code></pre>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>Two kernels: first, an ownership map that shows which thread owns which C element (same technique as Tutorial 04). Second, the actual micro-GEMM: load A and B into shared memory, partition them for the MMA, execute one Tensor Core instruction, and write C back to global memory.</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/arch/mma_sm80.hpp&gt;
@@ -507,7 +507,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 </code></pre>
 <p>The ownership map reveals the hardware&#39;s register distribution: threads 0–3 and 16–19 alternate in 4-row blocks along M, and each thread owns pairs of adjacent columns. Thread T00 holds C[0][0], C[0][1], C[8][0], C[8][1] ;  four floats scattered across two 4-row blocks. You don&#39;t need to memorize this pattern; <code>partition_C</code> handles it automatically.</p>
 <p>The GEMM result is 16.0 everywhere: each entry is the dot product of a length-16 all-ones row from A with a length-16 all-ones row from B. One instruction, 2048 multiply-adds, 32 threads cooperating through their registers. (The instruction has 20+ cycles of latency, but it occupies only one issue slot ;  so pipelining multiple MMAs is how real kernels hide that cost.)</p>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>using MMA_Op = SM80_16x8x16_F32F16F16F32_TN;</code></strong></p>
 <p>This names the PTX instruction we want: <code>mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32</code>. The naming convention:</p>
 <table>
@@ -569,7 +569,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <p>This is a single instruction, but <strong>not</strong> a single clock cycle ;  the MMA has a latency of 20+ cycles. However, it only occupies one issue slot, so the warp scheduler can issue other independent instructions (or another MMA from a different warp) while the Tensor Core is still working. Real GEMM kernels pipeline multiple MMAs to hide this latency. The <code>.sync</code> in the PTX name means all threads in the warp participate simultaneously ;  this is a collective operation, not a per-thread one.</p>
 <p><strong>Line: <code>copy(accum, tCgC);</code></strong></p>
 <p>Copies the 4 float accumulator values from registers to their corresponding positions in global memory C. Each thread writes to different addresses (determined by <code>partition_C</code>), so no conflicts. The host then reads back the complete 16×8 result.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> <code>MMA_Atom</code> is a <strong>stamping press</strong> ;  a fixed-size hardware machine that takes raw-material trays (A and B register fragments), processes them all at once, and stamps out a product (C accumulator). Each worker (thread) loads their assigned tray slot. <code>TiledMMA</code> is the factory floor plan that coordinates the workers. <code>gemm()</code> is pressing the button.</p>
 <p>This analogy extends the Tutorial 03–04 warehouse metaphor: data arrives from the truck (global memory) via the loading dock (TiledCopy + smem), and now the stamping press (TiledMMA) processes it in the factory. The same workers (threads) do both jobs ;  they just switch from mover role to machine-operator role.</p>
 <p><strong>Fragment size formula:</strong></p>

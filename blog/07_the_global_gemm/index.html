@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/07_the_global_gemm/"
   },
   "keywords": "CUDA",
-  "wordCount": 3296,
+  "wordCount": 3308,
   "timeRequired": "PT17M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>The Global GEMM ;  Putting It All Together</h1>
+<h1 id="the-global-gemm--putting-it-all-together">The Global GEMM ;  Putting It All Together</h1>
 <p><strong>Difficulty:</strong> Intermediate–Advanced
 <strong>Prerequisites:</strong> <a href="/blog/02_the_art_of_slicing/">Tutorial 02: Partitioning</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: TiledCopy</a>, <a href="/blog/05_swizzling/">Tutorial 05: Swizzling</a>, <a href="/blog/06_hello_mma/">Tutorial 06: Hello, MMA</a></p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 06 triggered a single Tensor Core instruction on a 16×8×16 (M×N×K) micro-tile. That&#39;s 2048 multiply-adds ;  impressive for one instruction, but real-world matrices are thousands of elements wide. You need to compute C(M×N) = A(M×K) × Bᵀ(N×K) where M, N, and K can each be 4096 or more.</p>
 <p>The answer isn&#39;t one giant instruction. It&#39;s <strong>tiling</strong> ;  the same idea from Tutorial 02, now applied at every level:</p>
 <table>
@@ -253,8 +253,8 @@
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, the structure is identical but the data-movement layer changes: TiledCopy with <code>cp.async</code> or TMA replaces explicit loads, and the K-loop becomes a software pipeline (Tutorial 10). The compute layer (<code>TiledMMA</code> + <code>gemm()</code>) stays the same.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
-<h3>Running the Factory for a Full Production Day</h3>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
+<h3 id="running-the-factory-for-a-full-production-day">Running the Factory for a Full Production Day</h3>
 <p>Tutorials 03–06 built the factory:</p>
 <ul>
 <li><strong>Loading dock</strong> (TiledCopy) ;  moves raw materials from the truck (global memory) into the warehouse (shared memory), using dollies (vectorized loads) and staggered shelving (swizzle).</li>
@@ -308,7 +308,7 @@
 
 grid = (M / 128, N / 128)
 </code></pre>
-<h3>The Three Phases</h3>
+<h3 id="the-three-phases">The Three Phases</h3>
 <pre><code class="language-text">Phase 1: COPY (the loading dock)
   gmem A[BLK_M × BLK_K] ──TiledCopy──▶ smem_A (swizzled)
   gmem B[BLK_N × BLK_K] ──TiledCopy──▶ smem_B (swizzled)
@@ -324,7 +324,7 @@ Phase 3: EPILOGUE (shipping)
   accum ──partition_C──▶ gmem C[BLK_M × BLK_N]
 </code></pre>
 <p>Phases 1 and 2 repeat <code>ceil(K / BLK_K)</code> times. Phase 3 happens once.</p>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>A complete GEMM kernel: <code>C (M×N, float) += A (M×K, half) × B^T (N×K, half)</code>. Uses 128 threads (4 warps), 128×128 CTA tiles, and SM80 Tensor Cores.</p>
 <p><strong>Constraints:</strong> M and N must be multiples of 128; K must be a multiple of 32. (Removing these constraints requires boundary masking ;  important for production, orthogonal to the core GEMM structure.)</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
@@ -556,8 +556,8 @@ Result: PASS
 Performance: X.XXX ms  (Y.YY TFLOPS)
 </code></pre>
 <p>Each entry of C is 256.0: the dot product of a length-256 all-ones row from A with a length-256 all-ones row from B. The K-loop ran <code>256 / 32 = 8</code> iterations, each accumulating a BLK_K=32 partial product. After 8 iterations, the accumulator held the full result.</p>
-<h2>4. Step-by-Step Explanation</h2>
-<h3>Setup Phase</h3>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
+<h3 id="setup-phase">Setup Phase</h3>
 <p><strong>Lines: Global tensor creation with <code>make_tensor</code></strong></p>
 <pre><code class="language-cpp">auto mA = make_tensor(make_gmem_ptr(A_ptr), make_shape(M, K), make_stride(K, Int&lt;1&gt;{}));
 </code></pre>
@@ -607,7 +607,7 @@ Performance: X.XXX ms  (Y.YY TFLOPS)
 <li>2×2 warps → combined base: 32M × 16N × 16K.</li>
 <li>For the 128×128×32 smem tile, <code>gemm()</code> internally loops 4× in M (128/32), 8× in N (128/16), and 2× in K (32/16). You don&#39;t write these loops ;  <code>gemm()</code> handles them.</li>
 </ul>
-<h3>Partition Phase</h3>
+<h3 id="partition-phase">Partition Phase</h3>
 <p><strong>Lines: Copy partitions</strong></p>
 <pre><code class="language-cpp">auto tAgA = thr_copy.partition_S(gA);   // (CPY_VEC, CPY_M, CPY_K, k_tiles)
 auto tAsA = thr_copy.partition_D(sA);   // (CPY_VEC, CPY_M, CPY_K)
@@ -619,7 +619,7 @@ auto tCrA = make_fragment_like(tCsA);   // register copy
 auto accum = make_fragment_like(tCgC);  // C accumulator
 </code></pre>
 <p>Same as Tutorial 06: <code>partition_A</code> maps smem elements to this thread&#39;s MMA fragment slots. <code>make_fragment_like</code> creates a register tensor with the same shape. The accumulator <code>accum</code> lives in registers for the entire kernel ;  it&#39;s never written to smem.</p>
-<h3>Mainloop</h3>
+<h3 id="mainloop">Mainloop</h3>
 <pre><code class="language-cpp">for (int k = 0; k &lt; k_tiles; ++k) {
     copy(tiled_copy, tAgA(_, _, _, k), tAsA);    // gmem → smem
     copy(tiled_copy, tBgB(_, _, _, k), tBsB);
@@ -645,11 +645,11 @@ auto accum = make_fragment_like(tCgC);  // C accumulator
 </li>
 </ol>
 <p>After <code>k_tiles</code> iterations, <code>accum</code> holds the complete C tile.</p>
-<h3>Epilogue</h3>
+<h3 id="epilogue">Epilogue</h3>
 <pre><code class="language-cpp">copy(accum, tCgC);
 </code></pre>
 <p>Each thread writes its accumulator fragment (128 floats for this config) to global memory via the MMA&#39;s C partition. As noted in Tutorial 06, the C fragments are scattered ;  each thread writes to non-contiguous addresses. For a production kernel, CUTLASS routes the epilogue through shared memory for coalesced writes. For correctness, the simple scattered write works fine.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy: The Full Production Day.</strong></p>
 <ul>
 <li><strong>CTA grid</strong> = multiple independent factories, one per output tile. They never interact.</li>

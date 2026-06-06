@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/04_the_parallel_copy/"
   },
   "keywords": "CUDA",
-  "wordCount": 3021,
+  "wordCount": 3030,
   "timeRequired": "PT16M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>The Parallel Copy ;  Orchestrating Threads with TiledCopy</h1>
+<h1 id="the-parallel-copy--orchestrating-threads-with-tiledcopy">The Parallel Copy ;  Orchestrating Threads with TiledCopy</h1>
 <p><strong>Difficulty:</strong> Beginner–Intermediate
 <strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing">Tutorial 02: The Art of Slicing</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=03_the_naive_copy">Tutorial 03: The Naive Copy</a></p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 03 showed how one thread can vectorize its copy ;  using a dolly instead of hand-carrying boxes. But a real kernel doesn&#39;t have one worker on the loading dock; it has 32, 128, or 256 workers that all need to copy the <em>same tile together</em>, without stepping on each other&#39;s toes.</p>
 <p>You could combine Tutorial 02&#39;s <code>local_partition</code> with Tutorial 03&#39;s <code>copy()</code>:</p>
 <pre><code class="language-cpp">// Manual approach ;  works, but fragile
@@ -260,7 +260,7 @@ copy(AutoVectorizingCopy{}, thr_g, thr_s);
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, <code>TiledCopy</code> is also the container for TMA and <code>cp.async</code> atoms. The <code>thr_layout</code>/<code>val_layout</code> mechanism is identical ;  only the <code>Copy_Atom</code> changes. Master this pattern now and TMA (Tutorial 08) becomes a one-line swap.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
 <p>Imagine you have a <strong>16×8 tile</strong> to copy and <strong>32 threads</strong> (one warp). You need to answer three questions:</p>
 <ol>
 <li><strong>What tool does each thread use?</strong> → <code>Copy_Atom</code> with <code>UniversalCopy&lt;uint128_t&gt;</code> ;  each thread moves 128 bits (4 floats) per load instruction. This is the dolly from Tutorial 03.</li>
@@ -271,7 +271,7 @@ copy(AutoVectorizingCopy{}, thr_g, thr_s);
               = (4, 8)    × (4, 1)      × (1, 1)
               = (16, 8)   ✓ matches our tile!
 </code></pre>
-<h3>The Ownership Map</h3>
+<h3 id="the-ownership-map">The Ownership Map</h3>
 <p>Each cell shows which thread (T00–T31) copies it. The atom&#39;s 4 floats go along mode-0 (down the column), so each thread owns a 4×1 vertical strip:</p>
 <pre><code class="language-text">              col 0    col 1    col 2    col 3    col 4    col 5    col 6    col 7
             ┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
@@ -301,7 +301,7 @@ copy(AutoVectorizingCopy{}, thr_g, thr_s);
 <li><strong>Within each thread:</strong> T00&#39;s 4 values (rows 0–3 of col 0) are contiguous in column-major memory. That&#39;s 4 floats = 128 bits ;  a single <code>LDG.128</code>. The atom&#39;s <code>uint128_t</code> type made this happen.</li>
 <li><strong>Across threads:</strong> Each column has a different thread (T00, T04, T08, ...). No two threads touch the same cell. The <code>thr_layout = (4,8)</code> made this happen.</li>
 </ul>
-<h3>The Three-Part Recipe</h3>
+<h3 id="the-three-part-recipe">The Three-Part Recipe</h3>
 <pre><code class="language-text">┌──────────────────────────────────┐
 │         Copy_Atom                │ ← The tool: &quot;what can one thread carry?&quot;
 │  (UniversalCopy&lt;uint128_t&gt;,      │    Each load moves 4 floats / 128 bits.
@@ -324,7 +324,7 @@ Tile covered = (4 thr × 4 atom × 1 val, 8 thr × 1 atom × 1 val) = (16, 8)
 <blockquote>
 <p><strong>The Moving Crew Rule:</strong> Tutorial 03 was about one mover and their dolly. <code>TiledCopy</code> is the <strong>shift supervisor&#39;s clipboard</strong> ;  a plan that assigns every mover to a grid position on the warehouse floor and specifies what tool to use. The <code>Copy_Atom</code> says what each mover carries (the dolly). The <code>thr_layout</code> says where each mover stands. The <code>val_layout</code> says how many extra trips each mover makes beyond one atom load. Together, these three things tile the entire room with no gaps and no overlaps.</p>
 </blockquote>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>Two kernels: one visualizes the thread-to-element ownership map, one performs an actual global → shared copy.</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/atom/copy_atom.hpp&gt;
@@ -492,7 +492,7 @@ Shared memory after TiledCopy (column-major, showing row by row):
   row 15:    15    31    47    63    79    95   111   127
 </code></pre>
 <p>The values confirm column-major order: element 0 at (0,0), element 1 at (1,0), ..., element 16 at (0,1). The <code>TiledCopy</code> moved every element to the right shared memory cell ;  32 threads, zero conflicts, all vectorized.</p>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>auto tiled_copy = make_tiled_copy(Copy_Atom{...}, thr_layout, val_layout);</code></strong></p>
 <p>This is the declaration ;  the shift supervisor&#39;s clipboard. Three ingredients:</p>
 <ol>
@@ -521,7 +521,7 @@ Shared memory after TiledCopy (column-major, showing row by row):
 <li>Each thread issues one <code>LDG.128</code> (global load) and one <code>STS.128</code> (shared store)</li>
 <li>Total: 32 loads + 32 stores, all vectorized ;  the entire tile moves in one round</li>
 </ul>
-<h3>Bigger Tiles and Repetitions</h3>
+<h3 id="bigger-tiles-and-repetitions">Bigger Tiles and Repetitions</h3>
 <p>What if your tile is 128×128 but you still have 32 threads?</p>
 <pre><code class="language-cpp">auto big_copy = make_tiled_copy(
     Copy_Atom&lt;UniversalCopy&lt;uint128_t&gt;, float&gt;{},
@@ -543,7 +543,7 @@ Shared memory after TiledCopy (column-major, showing row by row):
 // partition_S for a 128×128 tile: shape (_4, _2, _4, _16).
 </code></pre>
 <p>Don&#39;t worry about memorizing these shapes ;  the point is that <code>copy()</code> handles the loops. You just set up the <code>TiledCopy</code> and call <code>copy()</code>.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> Tutorial 03 was about one mover and their dolly. <code>TiledCopy</code> is the <strong>shift supervisor&#39;s clipboard</strong> ;  a plan that assigns every mover to a grid position on the warehouse floor. The <code>Copy_Atom</code> says what tool each mover uses (the dolly). The <code>thr_layout</code> is where they stand. The <code>val_layout</code> is how many extra trips each mover makes. Three pieces, one plan, zero overlap.</p>
 <p><strong>The <code>val_layout</code> and Vectorization:</strong></p>
 <p>The atom&#39;s vector direction must align with the contiguous memory dimension, or you lose vectorization:</p>

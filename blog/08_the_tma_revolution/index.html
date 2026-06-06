@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/08_the_tma_revolution/"
   },
   "keywords": "CUDA",
-  "wordCount": 852,
+  "wordCount": 858,
   "timeRequired": "PT5M"
 }
     </script>
@@ -219,14 +219,14 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>The TMA Revolution (Async Copy)</h1>
+<h1 id="the-tma-revolution-async-copy">The TMA Revolution (Async Copy)</h1>
 <p><strong>Difficulty:</strong> Advanced
 <strong>Prerequisites:</strong> <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a></p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>&quot;The CPU is wasting time calculating addresses for copies. Let the hardware do it.&quot;</p>
 <p>Until now, we have used <code>TiledCopy</code> to coordinate warps and threads to fetch data from global memory into shared memory. The problem? <strong>Every single thread is computing memory addresses.</strong> For each element loaded, threads execute instructions just to resolve <code>address = coord · stride</code>. This burns registers and arithmetic logic unit (ALU) cycles that should be spent on matrix multiplication.</p>
 <p>With the Hopper and Blackwell architectures, NVIDIA introduced the <strong>Tensor Memory Accelerator (TMA)</strong>. Instead of having 128 threads manually calculating pointers and copying data, a single thread can offload the entire tile copy to dedicated hardware.</p>
-<h2>2. The Mental Model (The Visual)</h2>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
 <p>If <code>TiledCopy</code> is a warehouse crew of 128 workers carrying boxes (where each worker calculates their path), <code>TMA</code> is an <strong>autonomous forklift with a manifest</strong>. </p>
 <pre><code class="language-text">TiledCopy (threads do address math):
 
@@ -244,7 +244,7 @@ TMA (hardware does address math):
   [one thread] ──submit manifest──▶ TMA engine ──▶ smem
 </code></pre>
 <p>You create the manifest on the host, hand it to the forklift inside the kernel, and the hardware handles the rest asynchronously.</p>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>Here is a minimal, complete C++ example of copying a 128×64 tile using TMA. Notice how no threads are computing layouts inside the kernel loop!</p>
 <pre><code class="language-Cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/arch/copy_sm90.hpp&gt;
@@ -334,13 +334,13 @@ int main() {
     return 0;
 }
 </code></pre>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p>Line <code>make_tma_atom(SM90_TMA_LOAD{}, mA, sA_layout, ...)</code>: This runs entirely on the host. It bundles the <code>Layout&lt;Shape, Stride&gt;</code> math into a hardware-readable manifest. We are telling the GPU how global memory and shared memory relate, <em>before</em> the kernel starts.</p>
 <p>Line <code>auto [tAgA, tAsA] = tma_partition(...)</code>: We slice up the tensors for the copy. Unlike <code>TiledCopy</code> which assigns slices per-thread, <code>tma_partition</code> treats the CTA as one large worker.</p>
 <p>Line <code>if (threadIdx.x == 0)</code>: Only <strong>one dispatcher thread</strong> is needed to initiate the TMA load. </p>
 <p>Line <code>copy(tma.with(&amp;ss.tma_barrier), tAgA, tAsA)</code>: The actual dispatch command. The hardware asynchronously begins fetching the entire tile into shared memory.</p>
 <p>Line <code>Bar::wait(...)</code>: Because the forklift works asynchronously, we must wait at the loading dock (the <code>mbarrier</code>) before we can safely read the data.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> <code>Tensor Memory Accelerator (TMA)</code> is an <strong>autonomous forklift with a manifest</strong>. You don’t have 128 workers carrying boxes anymore. One dispatcher hands the forklift a manifest (the TMA descriptor), and the hardware moves the entire pallet into shared memory. <code>make_tma_atom</code> is printing the manifest for the autonomous forklift (the TMA descriptor).</p>
 <p><strong>Hardware Constraints &amp; Gotchas:</strong></p>
 <blockquote>

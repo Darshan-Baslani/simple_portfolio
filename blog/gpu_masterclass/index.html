@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/gpu_masterclass/"
   },
   "keywords": "CUDA",
-  "wordCount": 9403,
+  "wordCount": 9502,
   "timeRequired": "PT49M"
 }
     </script>
@@ -219,14 +219,14 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>🎓 The Feynman GPU Lectures</h1>
-<h3><em>&quot;What I cannot create, I do not understand.&quot;</em> ;  Richard Feynman</h3>
+<h1 id="the-feynman-gpu-lectures">🎓 The Feynman GPU Lectures</h1>
+<h3 id="what-i-cannot-create-i-do-not-understand--richard-feynman"><em>&quot;What I cannot create, I do not understand.&quot;</em> ;  Richard Feynman</h3>
 <blockquote>
 <p><strong>Welcome.</strong> We&#39;ll start from the transistor, build up to a CUDA core, wire those into a monster called a Streaming Multiprocessor, and then ride the architectural wave from Volta all the way to Blackwell. I&#39;ll give you real code ;  not toy code ;  in CUDA and PTX. By the end, you&#39;ll know what <code>tcgen05.mma</code> does at the wire level.</p>
 <p>No fluff. No marketing. Just physics, logic, and math.</p>
 </blockquote>
 <hr>
-<h2>Table of Contents</h2>
+<h2 id="table-of-contents">Table of Contents</h2>
 <ul>
 <li><a href="#hour-1--the-transistor-to-the-cuda-core">Hour 1 ;  The Transistor to the CUDA Core</a><ul>
 <li><a href="#11-the-transistor-natures-switch">1.1 The Transistor: Nature&#39;s Switch</a></li>
@@ -269,8 +269,8 @@
 <li><a href="#appendix-b--occupancy-calculator-cheat-sheet">Appendix B ;  Occupancy Calculator Cheat Sheet</a></li>
 </ul>
 <hr>
-<h1>Hour 1 ;  The Transistor to the CUDA Core</h1>
-<h2>1.1 The Transistor: Nature&#39;s Switch</h2>
+<h1 id="hour-1--the-transistor-to-the-cuda-core">Hour 1 ;  The Transistor to the CUDA Core</h1>
+<h2 id="11-the-transistor-natures-switch">1.1 The Transistor: Nature&#39;s Switch</h2>
 <p>Everything begins with a single idea: <strong>a voltage-controlled switch</strong>.</p>
 <p>A <strong>MOSFET</strong> (Metal-Oxide-Semiconductor Field-Effect Transistor) has three terminals:</p>
 <pre class="mermaid">graph LR
@@ -325,9 +325,9 @@
 <p><strong>208 billion transistors</strong> on Blackwell. That&#39;s about 26 transistors for every human alive, on a chip the size of your thumbnail (well, two chips fused together).</p>
 </blockquote>
 <hr>
-<h2>1.2 From Transistors to Logic Gates</h2>
+<h2 id="12-from-transistors-to-logic-gates">1.2 From Transistors to Logic Gates</h2>
 <p>Every digital circuit is built from three atomic operations. Here&#39;s how transistors make them:</p>
-<h3>The NOT Gate (Inverter) ;  2 Transistors</h3>
+<h3 id="the-not-gate-inverter--2-transistors">The NOT Gate (Inverter) ;  2 Transistors</h3>
 <pre class="mermaid">graph TD
     VDD["Vdd (+)"] --> PMOS
     PMOS -->|"when Input=0, PMOS ON"| OUT["Output"]
@@ -362,7 +362,7 @@
 <td><strong>0</strong></td>
 </tr>
 </tbody></table>
-<h3>The NAND Gate ;  4 Transistors</h3>
+<h3 id="the-nand-gate--4-transistors">The NAND Gate ;  4 Transistors</h3>
 <p>The NAND gate is the <strong>universal gate</strong> ;  you can build ANY logic function from NANDs alone.</p>
 <pre><code>        Vdd
        ┌─┤─┐
@@ -415,9 +415,9 @@ NMOS: Series  (both A=1 AND B=1 → output=0)
 <p><strong>Why NAND is universal</strong>: <code>NOT(A) = NAND(A,A)</code>. <code>AND(A,B) = NOT(NAND(A,B))</code>. <code>OR(A,B) = NAND(NOT(A), NOT(B))</code>. Every other gate follows. This is why chip designers think in NANDs.</p>
 </blockquote>
 <hr>
-<h2>1.3 From Gates to an ALU</h2>
+<h2 id="13-from-gates-to-an-alu">1.3 From Gates to an ALU</h2>
 <p>An ALU is just a <strong>network of gates</strong> that performs arithmetic. Let&#39;s build one from the bottom up.</p>
-<h3>Half Adder ;  The Atom of Arithmetic</h3>
+<h3 id="half-adder--the-atom-of-arithmetic">Half Adder ;  The Atom of Arithmetic</h3>
 <pre class="mermaid">graph LR
     A["A"] --> XOR["⊕ XOR"]
     B["B"] --> XOR
@@ -434,11 +434,11 @@ NMOS: Series  (both A=1 AND B=1 → output=0)
     style C fill:#2ecc71,stroke:#333,color:#fff</pre>
 <p><div class="math-display">$$Sum = A \oplus B$$</div>
 <div class="math-display">$$Carry = A \wedge B$$</div></p>
-<h3>Full Adder ;  Handles a Carry-In</h3>
+<h3 id="full-adder--handles-a-carry-in">Full Adder ;  Handles a Carry-In</h3>
 <p><div class="math-display">$$Sum = A \oplus B \oplus C_{in}$$</div>
 <div class="math-display">$$C_{out} = (A \wedge B) \lor (C_{in} \wedge (A \oplus B))$$</div></p>
 <p><strong>Gate count</strong>: ~9 gates = ~36 transistors per bit.</p>
-<h3>32-bit Adder</h3>
+<h3 id="32-bit-adder">32-bit Adder</h3>
 <p>Chain 32 full adders. But naive chaining is slow (carry ripples through all 32 bits). GPUs use <strong>Carry-Lookahead Adders (CLA)</strong>:</p>
 <pre class="mermaid">graph TD
     subgraph "Carry-Lookahead Adder - 32-bit"
@@ -467,7 +467,7 @@ NMOS: Series  (both A=1 AND B=1 → output=0)
 <p>The lookahead trick: expand the recursion so all carries compute in <span class="math-inline">$O(\log n)$</span> gate delays instead of <span class="math-inline">$O(n)$</span>.</p>
 <p><strong>Total for a 32-bit CLA</strong>: ~200 gates ≈ ~800 transistors. Delay: ~4-5 gate stages.</p>
 <hr>
-<h2>1.4 The CUDA Core: A Bare-Metal FPU</h2>
+<h2 id="14-the-cuda-core-a-bare-metal-fpu">1.4 The CUDA Core: A Bare-Metal FPU</h2>
 <p>Now let&#39;s build an actual floating-point unit. An FP32 number (IEEE 754):</p>
 <pre><code>┌──────┬──────────┬───────────────────────┐
 │ Sign │ Exponent │      Mantissa         │
@@ -476,7 +476,7 @@ NMOS: Series  (both A=1 AND B=1 → output=0)
 
 Value = (-1)^sign × 2^(exponent-127) × 1.mantissa
 </code></pre>
-<h3>FP32 Multiply Pipeline</h3>
+<h3 id="fp32-multiply-pipeline">FP32 Multiply Pipeline</h3>
 <p>To compute <span class="math-inline">$A \times B$</span>:</p>
 <pre class="mermaid">graph TD
     A["Input A<br/>(sign, exp, mant)"] --> S1
@@ -503,7 +503,7 @@ Value = (-1)^sign × 2^(exponent-127) × 1.mantissa
 <blockquote>
 <p><strong>Compare to a CPU core</strong>: An Intel Golden Cove core has ~500 million transistors. A CUDA core has ~15,000. That&#39;s a factor of <strong>30,000×</strong>. A CUDA core is <em>stupidly simple</em> by design. That&#39;s the point.</p>
 </blockquote>
-<h3>What a CUDA Core Does NOT Have</h3>
+<h3 id="what-a-cuda-core-does-not-have">What a CUDA Core Does NOT Have</h3>
 <pre class="mermaid">graph LR
     subgraph "CPU Core"
         BP["Branch Predictor<br/>~50K transistors"]
@@ -526,8 +526,8 @@ Value = (-1)^sign × 2^(exponent-127) × 1.mantissa
     style DONE fill:#2ecc71,stroke:#333,color:#fff</pre>
 <p>No branch predictor. No out-of-order execution. No speculation. No private cache. Just: <strong>input → ALU → output</strong>. The GPU&#39;s philosophy is: <em>&quot;Why predict branches when you can just run 10,000 threads and always have something useful to do?&quot;</em></p>
 <hr>
-<h2>1.5 SIMT: How 32 Threads Breathe Together</h2>
-<h3>The Warp ;  The Atom of GPU Execution</h3>
+<h2 id="15-simt-how-32-threads-breathe-together">1.5 SIMT: How 32 Threads Breathe Together</h2>
+<h3 id="the-warp--the-atom-of-gpu-execution">The Warp ;  The Atom of GPU Execution</h3>
 <p>A <strong>warp</strong> is 32 threads that execute the <strong>same instruction</strong> at the <strong>same time</strong> on 32 different data.</p>
 <p>This is <strong>SIMT</strong> ;  Single Instruction, Multiple Threads. It&#39;s like SIMD (SSE/AVX), but each &quot;lane&quot; has its own registers and can branch independently (since Volta).</p>
 <pre class="mermaid">graph TD
@@ -548,14 +548,14 @@ Value = (-1)^sign × 2^(exponent-127) × 1.mantissa
     style T2 fill:#3498db,stroke:#333,color:#fff
     style T31 fill:#3498db,stroke:#333,color:#fff</pre>
 <p><strong>The hardware implementation</strong>: The warp scheduler fetches ONE instruction. The dispatch unit sends it to 32 CUDA cores simultaneously. Each core reads from its own register bank and writes to its own register bank. One instruction, 32 executions. That&#39;s a <strong>32× multiplier on instruction fetch/decode efficiency</strong> compared to a scalar processor.</p>
-<h3>Thread Identity</h3>
+<h3 id="thread-identity">Thread Identity</h3>
 <pre><code class="language-cuda">// Every thread knows exactly where it is:
 int globalId = blockIdx.x * blockDim.x + threadIdx.x;
 int warpId   = threadIdx.x / 32;    // which warp within this block
 int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
 </code></pre>
 <hr>
-<h2>1.6 The Streaming Multiprocessor (SM)</h2>
+<h2 id="16-the-streaming-multiprocessor-sm">1.6 The Streaming Multiprocessor (SM)</h2>
 <p>The SM is the <strong>fundamental compute unit</strong> of a GPU. Everything above (cores, warps, schedulers) lives inside one SM.</p>
 <pre class="mermaid">graph TD
     subgraph SM["Streaming Multiprocessor"]
@@ -604,7 +604,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
     style WS0 fill:#0f3460,stroke:#333,color:#fff
     style CORES0 fill:#533483,stroke:#333,color:#fff
     style TC0 fill:#e74c3c,stroke:#333,color:#fff</pre>
-<h3>SM Specs Across Generations</h3>
+<h3 id="sm-specs-across-generations">SM Specs Across Generations</h3>
 <table>
 <thead>
 <tr>
@@ -676,7 +676,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
 <p><strong>The golden ratio of GPUs</strong>: 2048 threads / 256 KB registers = 128 bytes (32 registers) per thread at 100% occupancy. Every register you add above 32 reduces your occupancy. This is the <em>fundamental tradeoff</em> of GPU programming.</p>
 </blockquote>
 <hr>
-<h2>1.7 Warp Divergence: The Cost of <code>if</code></h2>
+<h2 id="17-warp-divergence-the-cost-of-if">1.7 Warp Divergence: The Cost of <code>if</code></h2>
 <p>Consider this code:</p>
 <pre><code class="language-cuda">__global__ void divergent_kernel(float* data, int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -687,7 +687,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
     }
 }
 </code></pre>
-<h3>What Happens Inside the Warp</h3>
+<h3 id="what-happens-inside-the-warp">What Happens Inside the Warp</h3>
 <pre class="mermaid">graph TD
     subgraph "Warp Execution Timeline"
         T1["Clock 1-10: Execute Branch A<br/>Active Mask: 0x55555555<br/>Threads 0,2,4,...,30 ACTIVE<br/>Threads 1,3,5,...,31 IDLE"]
@@ -702,7 +702,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
     style T3 fill:#2ecc71,stroke:#333,color:#fff</pre>
 <p><strong>Throughput</strong>: Both branches execute sequentially. If each branch takes 10 cycles, the divergent warp takes <strong>20 cycles</strong> instead of 10. That&#39;s <strong>50% efficiency</strong>.</p>
 <p><strong>The hardware truth</strong>: Those &quot;idle&quot; CUDA cores aren&#39;t powered down ;  they&#39;re executing the instruction but their <strong>write-back is masked</strong>. The energy is mostly wasted.</p>
-<h3>The Fix: Think in Warps, Not Threads</h3>
+<h3 id="the-fix-think-in-warps-not-threads">The Fix: Think in Warps, Not Threads</h3>
 <pre><code class="language-cuda">// GOOD: All threads in a warp take the same branch
 __global__ void coalesced_kernel(float* data, int N) {
     int warpId = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
@@ -718,11 +718,11 @@ __global__ void coalesced_kernel(float* data, int N) {
 }
 </code></pre>
 <hr>
-<h1>Hour 2 ;  Memory: The Real Bottleneck</h1>
+<h1 id="hour-2--memory-the-real-bottleneck">Hour 2 ;  Memory: The Real Bottleneck</h1>
 <blockquote>
 <p><em>&quot;The speed of computation doesn&#39;t matter if you can&#39;t feed the beast.&quot;</em></p>
 </blockquote>
-<h2>2.1 The Memory Hierarchy: A Map of Latencies</h2>
+<h2 id="21-the-memory-hierarchy-a-map-of-latencies">2.1 The Memory Hierarchy: A Map of Latencies</h2>
 <p>This is the single most important diagram in GPU programming:</p>
 <pre class="mermaid">graph TD
     REG["Registers<br/>256 KB per SM<br/>0 cycles - same clock<br/>~20 TB/s aggregate"] --> SMEM
@@ -750,7 +750,7 @@ __global__ void coalesced_kernel(float* data, int N) {
 <p><div class="math-display">$$\text{Warps needed to hide latency} = \frac{\text{Memory latency}}{\text{Instruction throughput}} = \frac{400 \text{ cycles}}{4 \text{ cycles/instruction}} = 100 \text{ warps}$$</div></p>
 <p>But we only have 64 warps per SM. So we <strong>need</strong> shared memory and caches to reduce effective latency, or we&#39;ll always be memory-bound.</p>
 <hr>
-<h2>2.2 Registers: Zero-Cost Storage</h2>
+<h2 id="22-registers-zero-cost-storage">2.2 Registers: Zero-Cost Storage</h2>
 <p>Registers are the fastest memory in the system. Each SM has <strong>65,536 x 32-bit registers</strong> (256 KB).</p>
 <pre><code class="language-cuda">__global__ void register_demo(float* out, float* in, int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -779,7 +779,7 @@ If your kernel uses 128 registers/thread:
 <blockquote>
 <p><strong>Feynman&#39;s rule</strong>: <em>Every register you add above 32 is stealing occupancy from you.</em> But sometimes that&#39;s a good trade ;  more registers means fewer memory accesses. Profile, don&#39;t guess.</p>
 </blockquote>
-<h3>PTX Register Usage</h3>
+<h3 id="ptx-register-usage">PTX Register Usage</h3>
 <pre><code>// PTX: Registers are explicitly declared
 .reg .f32 %f&lt;64&gt;;    // 64 FP32 registers: %f0 through %f63
 .reg .f64 %fd&lt;16&gt;;   // 16 FP64 registers
@@ -793,9 +793,9 @@ add.f32       %f1, %f0, %f2;     // Add two registers
 st.global.f32 [%rd1], %f1;       // Store register to global memory
 </code></pre>
 <hr>
-<h2>2.3 Shared Memory &amp; Bank Conflicts</h2>
+<h2 id="23-shared-memory--bank-conflicts">2.3 Shared Memory &amp; Bank Conflicts</h2>
 <p>Shared memory is on-chip SRAM, accessible by all threads in a <strong>thread block</strong> (CTA). It&#39;s 20-30x faster than global memory.</p>
-<h3>Physical Structure: 32 Banks</h3>
+<h3 id="physical-structure-32-banks">Physical Structure: 32 Banks</h3>
 <pre class="mermaid">graph TD
     subgraph "Shared Memory: 32 Banks x 4 Bytes Wide"
         B0["Bank 0<br/>Addr 0, 128, 256..."]
@@ -823,7 +823,7 @@ st.global.f32 [%rd1], %f1;       // Store register to global memory
     style B30 fill:#1a5276,stroke:#333,color:#fff
     style B31 fill:#154360,stroke:#333,color:#fff</pre>
 <p><strong>Bank formula</strong>: <code>bank(address) = (address / 4) % 32</code></p>
-<h3>The Three Cases</h3>
+<h3 id="the-three-cases">The Three Cases</h3>
 <pre><code class="language-cuda">__shared__ float smem[1024];
 
 // CASE 1: No conflict ;  stride-1 access (perfect)
@@ -846,7 +846,7 @@ float val = smem[threadIdx.x * 32];
 float val = smem[0];
 // All 32 threads read address 0 -&gt; Bank 0 broadcasts. One cycle.
 </code></pre>
-<h3>Bank Conflict Diagram</h3>
+<h3 id="bank-conflict-diagram">Bank Conflict Diagram</h3>
 <pre class="mermaid">graph LR
     subgraph "No Conflict - stride 1"
         direction TB
@@ -870,7 +870,7 @@ float val = smem[0];
     style BA3 fill:#2ecc71,stroke:#333,color:#fff
     style BB0 fill:#e74c3c,stroke:#333,color:#fff
     style BB2 fill:#e74c3c,stroke:#333,color:#fff</pre>
-<h3>Fixing Bank Conflicts: Padding</h3>
+<h3 id="fixing-bank-conflicts-padding">Fixing Bank Conflicts: Padding</h3>
 <pre><code class="language-cuda">// Problem: column-major access to a 32-wide array
 __shared__ float tile[32][32];   // smem[row][col]
 // Accessing column: tile[threadIdx.x][col] -&gt; stride-32 -&gt; 32-way conflict!
@@ -881,7 +881,7 @@ __shared__ float tile[32][32 + 1];  // 33 columns
 // One wasted float per row, but 32x throughput improvement.
 </code></pre>
 <hr>
-<h2>2.4 Global Memory &amp; Coalescing</h2>
+<h2 id="24-global-memory--coalescing">2.4 Global Memory &amp; Coalescing</h2>
 <p>Global memory (HBM) is accessed through <strong>128-byte cache lines</strong>. The hardware <strong>coalesces</strong> requests from all 32 threads in a warp into the minimum number of transactions.</p>
 <pre class="mermaid">graph TD
     subgraph "Coalesced Access - 1 transaction"
@@ -906,7 +906,7 @@ __shared__ float tile[32][32 + 1];  // 33 columns
     style CL1 fill:#e74c3c,stroke:#333,color:#fff
     style CL2 fill:#e74c3c,stroke:#333,color:#fff
     style CL3 fill:#e74c3c,stroke:#333,color:#fff</pre>
-<h3>The Coalescing Hardware</h3>
+<h3 id="the-coalescing-hardware">The Coalescing Hardware</h3>
 <p>Inside each SM&#39;s Load/Store Unit (LSU):</p>
 <ol>
 <li>Collect all 32 addresses from the warp</li>
@@ -931,14 +931,14 @@ __global__ void random_access(float* data, int* indices) {
     float val = data[indices[threadIdx.x]];  // Unpredictable addresses
 }
 </code></pre>
-<h3>Coalescing Math</h3>
+<h3 id="coalescing-math">Coalescing Math</h3>
 <p>For a warp accessing addresses <span class="math-inline">$a_0, a_1, \ldots, a_{31}$</span>:</p>
 <p><div class="math-display">$$\text{Transactions} = \left|\left\lbrace \left\lfloor \frac{a_i}{128} \right\rfloor \mid i \in [0, 31] \right\rbrace\right|$$</div></p>
 <p>i.e., the number of <strong>distinct 128-byte aligned segments</strong> touched.</p>
 <p><strong>Best case</strong>: 1 transaction (128 bytes), all data used → <strong>100% efficiency</strong></p>
 <p><strong>Worst case</strong>: 32 transactions (4096 bytes), only 128 bytes used → <strong>3.125% efficiency</strong></p>
 <hr>
-<h2>2.5 Occupancy: The Art of Hiding Latency</h2>
+<h2 id="25-occupancy-the-art-of-hiding-latency">2.5 Occupancy: The Art of Hiding Latency</h2>
 <p><strong>Occupancy</strong> = Active warps / Maximum warps per SM</p>
 <pre class="mermaid">graph TD
     subgraph "Occupancy Limiters"
@@ -957,7 +957,7 @@ __global__ void random_access(float* data, int* indices) {
     style BLK fill:#2ecc71,stroke:#333,color:#fff
     style MIN fill:#f1c40f,stroke:#333,color:#000
     style OCC fill:#9b59b6,stroke:#333,color:#fff</pre>
-<h3>Worked Example</h3>
+<h3 id="worked-example">Worked Example</h3>
 <pre><code>Kernel: 256 threads/block, 48 regs/thread, 16 KB shared memory
 GPU: SM90 (Hopper)
 
@@ -978,7 +978,7 @@ Final: min(40, 64, 64) = 40 warps -&gt; Occupancy = 40/64 = 62.5%
 <p><strong>Feynman&#39;s warning</strong>: <em>Don&#39;t worship occupancy.</em> Sometimes 50% occupancy with 64 registers per thread beats 100% occupancy with 32 registers, because you avoid expensive memory spills. The occupancy calculator is a guide, not a god.</p>
 </blockquote>
 <hr>
-<h2>2.6 The Warp Scheduler: Juggling Latency</h2>
+<h2 id="26-the-warp-scheduler-juggling-latency">2.6 The Warp Scheduler: Juggling Latency</h2>
 <p>Each SM has <strong>4 warp schedulers</strong>, each managing a pool of warps. Every cycle, each scheduler:</p>
 <pre class="mermaid">graph TD
     CHECK["Check: Is any warp ready?<br/>Not stalled on memory, barrier, or dependency"] -->|"Yes"| SELECT
@@ -1000,7 +1000,7 @@ Final: min(40, 64, 64) = 40 warps -&gt; Occupancy = 40/64 = 62.5%
     style EXEC fill:#e74c3c,stroke:#333,color:#fff
     style SCOREBOARD fill:#9b59b6,stroke:#333,color:#fff
     style STALL fill:#c0392b,stroke:#333,color:#fff</pre>
-<h3>The Scoreboard</h3>
+<h3 id="the-scoreboard">The Scoreboard</h3>
 <p>Each warp has a <strong>scoreboard</strong> ;  a bit vector tracking which registers have pending writes:</p>
 <pre><code>Warp 7 Scoreboard:
   R0: ready    R8:  ready    R16: PENDING (waiting for LD)
@@ -1013,15 +1013,15 @@ If next instruction is: ADD R5, R2, R3
   -&gt; Scheduler picks another warp
 </code></pre>
 <p>This is why GPUs <strong>need many warps</strong>: every memory access stalls a warp for hundreds of cycles. The scheduler swaps to another warp <strong>in zero cycles</strong> (zero-cost context switching, because all warp state is always resident in registers).</p>
-<h3>Latency Hiding Math</h3>
+<h3 id="latency-hiding-math">Latency Hiding Math</h3>
 <p>For a <strong>memory-bound</strong> kernel:</p>
 <p><div class="math-display">$$\text{Warps needed} \geq \frac{\text{Memory latency (cycles)}}{\text{Cycles between memory ops}}$$</div></p>
 <p>Example: Memory latency = 400 cycles, one memory op every 8 arithmetic instructions (4 cycles each = 32 cycles):</p>
 <p><div class="math-display">$$\text{Warps needed} \geq \frac{400}{32} = 12.5 \rightarrow 13 \text{ warps per scheduler}$$</div></p>
 <p>With 4 schedulers: <strong>52 warps minimum</strong> → ~81% occupancy needed.</p>
 <hr>
-<h1>Hour 3 ;  The Generational Leap: Volta → Ampere → Hopper</h1>
-<h2>3.1 Tensor Cores: Why Multiply-Accumulate Is King</h2>
+<h1 id="hour-3--the-generational-leap-volta--ampere--hopper">Hour 3 ;  The Generational Leap: Volta → Ampere → Hopper</h1>
+<h2 id="31-tensor-cores-why-multiply-accumulate-is-king">3.1 Tensor Cores: Why Multiply-Accumulate Is King</h2>
 <p>Deep learning is dominated by one operation: <strong>matrix multiply-accumulate (MMA)</strong>.</p>
 <p><div class="math-display">$$D = A \times B + C$$</div></p>
 <p>Where <span class="math-inline">$A$</span> is <span class="math-inline">$M \times K$</span>, <span class="math-inline">$B$</span> is <span class="math-inline">$K \times N$</span>, and <span class="math-inline">$C, D$</span> are <span class="math-inline">$M \times N$</span>.</p>
@@ -1056,9 +1056,9 @@ If next instruction is: ADD R5, R2, R3
     style C3 fill:#3498db,stroke:#333,color:#fff
     style C4 fill:#3498db,stroke:#333,color:#fff</pre>
 <hr>
-<h2>3.2 Volta (SM70): Where Tensor Cores Were Born</h2>
+<h2 id="32-volta-sm70-where-tensor-cores-were-born">3.2 Volta (SM70): Where Tensor Cores Were Born</h2>
 <p><strong>Volta</strong> (2017) introduced the <strong>1st generation Tensor Core</strong> and <strong>independent thread scheduling</strong>.</p>
-<h3>Tensor Core V1: 4x4x4 FP16 to FP32</h3>
+<h3 id="tensor-core-v1-4x4x4-fp16-to-fp32">Tensor Core V1: 4x4x4 FP16 to FP32</h3>
 <p>Each Tensor Core computes: <span class="math-inline">$D_{4 \times 4} = A_{4 \times 4} \cdot B_{4 \times 4} + C_{4 \times 4}$</span></p>
 <ul>
 <li><strong>Input</strong>: FP16 (A, B)</li>
@@ -1066,7 +1066,7 @@ If next instruction is: ADD R5, R2, R3
 <li><strong>Per Tensor Core per clock</strong>: 64 FMA operations</li>
 <li><strong>8 Tensor Cores per SM</strong>: 512 FMA ops/SM/clock</li>
 </ul>
-<h3>CUDA: WMMA API</h3>
+<h3 id="cuda-wmma-api">CUDA: WMMA API</h3>
 <pre><code class="language-cuda">#include &lt;mma.h&gt;
 using namespace nvcuda;
 
@@ -1100,7 +1100,7 @@ __global__ void volta_wmma_gemm(half* A, half* B, float* C, float* D,
     wmma::store_matrix_sync(D + row * N + col, c_frag, N, wmma::mem_row_major);
 }
 </code></pre>
-<h3>PTX: wmma.mma.sync</h3>
+<h3 id="ptx-wmmammasync">PTX: wmma.mma.sync</h3>
 <pre><code>// PTX for Volta WMMA (16x16x16, FP16 to FP32)
 // Warp-synchronous ;  all 32 threads participate
 
@@ -1128,14 +1128,14 @@ wmma.mma.sync.aligned.m16n16k16.row.col.f32.f16.f16.f32
 <p><strong>Key insight</strong>: The <code>wmma.mma.sync</code> is <strong>warp-synchronous</strong> ;  all 32 threads must execute it together. Each thread contributes a piece of the A, B, and C matrices. The Tensor Core hardware does the reduction internally.</p>
 </blockquote>
 <hr>
-<h2>3.3 Ampere (SM80): Async Copy &amp; mbarrier</h2>
+<h2 id="33-ampere-sm80-async-copy--mbarrier">3.3 Ampere (SM80): Async Copy &amp; mbarrier</h2>
 <p><strong>Ampere</strong> (2020) brought three game-changers:</p>
 <ol>
 <li><strong>3rd-gen Tensor Cores</strong> (TF32, BF16, FP64, structured sparsity)</li>
 <li><strong>cp.async</strong> ;  hardware asynchronous copy from global to shared memory</li>
 <li><strong>mbarrier</strong> ;  hardware-accelerated synchronization primitive</li>
 </ol>
-<h3>cp.async: Bypass the Register File</h3>
+<h3 id="cpasync-bypass-the-register-file">cp.async: Bypass the Register File</h3>
 <p>Before Ampere, loading from global to shared memory required:</p>
 <pre><code>Global Memory -&gt; Register -&gt; Shared Memory   (2 steps, registers busy)
 </code></pre>
@@ -1157,7 +1157,7 @@ wmma.mma.sync.aligned.m16n16k16.row.col.f32.f16.f16.f32
     style SM1 fill:#3498db,stroke:#333,color:#fff
     style GM2 fill:#e74c3c,stroke:#333,color:#fff
     style SM2 fill:#3498db,stroke:#333,color:#fff</pre>
-<h3>CUDA cp.async</h3>
+<h3 id="cuda-cpasync">CUDA cp.async</h3>
 <pre><code class="language-cuda">#include &lt;cuda_pipeline.h&gt;
 
 __global__ void async_copy_kernel(float4* global_data, int N) {
@@ -1195,7 +1195,7 @@ __global__ void async_copy_kernel(float4* global_data, int N) {
     compute(smem_buffer[stage]);
 }
 </code></pre>
-<h3>PTX: cp.async</h3>
+<h3 id="ptx-cpasync">PTX: cp.async</h3>
 <pre><code>// Copy 16 bytes from global to shared memory, asynchronously
 cp.async.ca.shared.global [smem_addr], [global_addr], 16;
 
@@ -1208,18 +1208,18 @@ cp.async.wait_group N;
 // Wait for ALL pending copies
 cp.async.wait_all;
 </code></pre>
-<h3>Ampere&#39;s Structured Sparsity (2:4)</h3>
+<h3 id="amperes-structured-sparsity-24">Ampere&#39;s Structured Sparsity (2:4)</h3>
 <p>Ampere introduced hardware-accelerated <strong>2:4 structured sparsity</strong>: in every group of 4 elements, at least 2 must be zero.</p>
 <pre><code>Dense:    [0.5, 0.0, 0.3, 0.0, 0.7, 0.0, 0.1, 0.0]
 Sparse:   [0.5, 0.3, 0.7, 0.1]  + metadata: [0,2,0,2]
 </code></pre>
 <p>The Tensor Core skips zero multiplications → <strong>2x throughput</strong>.</p>
 <hr>
-<h2>3.4 Deep Dive: mbarrier ;  Phase-Based Synchronization</h2>
+<h2 id="34-deep-dive-mbarrier--phase-based-synchronization">3.4 Deep Dive: mbarrier ;  Phase-Based Synchronization</h2>
 <blockquote>
 <p><em>&quot;Synchronization is the tax you pay for parallelism. mbarrier reduces that tax.&quot;</em></p>
 </blockquote>
-<h3>Why Not Just <code>__syncthreads()</code>?</h3>
+<h3 id="why-not-just-syncthreads">Why Not Just <code>__syncthreads()</code>?</h3>
 <p><code>__syncthreads()</code> is a <strong>sledgehammer</strong>: it forces ALL threads in a block to reach the same point. It knows nothing about asynchronous operations. It&#39;s block-scoped only.</p>
 <p><strong>mbarrier</strong> is a <strong>scalpel</strong>: it can track async operations (like <code>cp.async</code>), works across CTAs in a cluster, and uses phases for pipelining.</p>
 <table>
@@ -1256,7 +1256,7 @@ Sparse:   [0.5, 0.3, 0.7, 0.1]  + metadata: [0,2,0,2]
 <td>Thread arrival + async byte count</td>
 </tr>
 </tbody></table>
-<h3>The mbarrier State Machine</h3>
+<h3 id="the-mbarrier-state-machine">The mbarrier State Machine</h3>
 <pre class="mermaid">stateDiagram-v2
     [*] --> Init: mbarrier.init count=N
     
@@ -1275,14 +1275,14 @@ Sparse:   [0.5, 0.3, 0.7, 0.1]  + metadata: [0,2,0,2]
 <p><strong>Phase 0 note</strong>: Threads call <code>mbarrier.arrive()</code>, async ops arrive automatically. Waiters spin on <code>try_wait(phase=0)</code>.</p>
 <p><strong>Phase 1 note</strong>: Same mechanism, opposite phase. Allows pipelining stages.</p>
 </blockquote>
-<h3>The mbarrier Object in Memory</h3>
+<h3 id="the-mbarrier-object-in-memory">The mbarrier Object in Memory</h3>
 <p>An mbarrier lives in <strong>shared memory</strong> as an 8-byte (64-bit) opaque object:</p>
 <pre><code>Bits 63-32: Pending async byte count (for cp.async tracking)
 Bits 31-16: Arrival count remaining
 Bit  0:     Phase bit (alternates 0 and 1)
 </code></pre>
 <p>The hardware manages these bits atomically.</p>
-<h3>Complete PTX mbarrier Example: Multi-Stage Pipeline</h3>
+<h3 id="complete-ptx-mbarrier-example-multi-stage-pipeline">Complete PTX mbarrier Example: Multi-Stage Pipeline</h3>
 <pre><code>// ============================================
 // Multi-stage async pipeline using mbarrier
 // ============================================
@@ -1342,7 +1342,7 @@ MAIN_LOOP:
     setp.lt.u32 %p_loop, %stage, %num_tiles;
     @%p_loop bra MAIN_LOOP;
 </code></pre>
-<h3>mbarrier with TMA (Hopper+)</h3>
+<h3 id="mbarrier-with-tma-hopper">mbarrier with TMA (Hopper+)</h3>
 <p>On Hopper, the <strong>TMA hardware</strong> automatically arrives at an mbarrier when its copy completes ;  no thread intervention needed:</p>
 <pre class="mermaid">sequenceDiagram
     participant Thread as Warp Thread
@@ -1361,9 +1361,9 @@ MAIN_LOOP:
     Note right of MBAR: When all arrivals + TX complete: phase flips
     Thread->>MBAR: mbarrier.try_wait(phase) = complete!</pre>
 <hr>
-<h2>3.5 Hopper (SM90): TMA, Clusters &amp; WGMMA</h2>
+<h2 id="35-hopper-sm90-tma-clusters--wgmma">3.5 Hopper (SM90): TMA, Clusters &amp; WGMMA</h2>
 <p><strong>Hopper</strong> (2022) was a quantum leap. Three major innovations:</p>
-<h3>1. Thread Block Clusters</h3>
+<h3 id="1-thread-block-clusters">1. Thread Block Clusters</h3>
 <p>A <strong>cluster</strong> is a group of up to 8 CTAs (thread blocks) that are <strong>guaranteed to be co-scheduled</strong> on the same GPC.</p>
 <pre class="mermaid">graph TD
     subgraph GPC0["GPC 0"]
@@ -1400,7 +1400,7 @@ __global__ void cluster_kernel() {
     int val = *remote_smem;  // No global memory needed!
 }
 </code></pre>
-<h3>2. Tensor Memory Accelerator (TMA)</h3>
+<h3 id="2-tensor-memory-accelerator-tma">2. Tensor Memory Accelerator (TMA)</h3>
 <p>The TMA is a <strong>dedicated hardware engine</strong> in each SM that moves multi-dimensional tensor tiles between global memory and shared memory.</p>
 <pre class="mermaid">graph LR
     subgraph "Without TMA - Manual Tiling"
@@ -1420,7 +1420,7 @@ __global__ void cluster_kernel() {
     style T0 fill:#95a5a6,stroke:#333,color:#fff
     style T1 fill:#95a5a6,stroke:#333,color:#fff
     style T2 fill:#95a5a6,stroke:#333,color:#fff</pre>
-<h3>TMA Setup (Host Side)</h3>
+<h3 id="tma-setup-host-side">TMA Setup (Host Side)</h3>
 <pre><code class="language-cuda">// Create a tensor map descriptor on the host
 CUtensorMap tensorMap;
 CUresult result = cuTensorMapEncodeTiled(
@@ -1438,7 +1438,7 @@ CUresult result = cuTensorMapEncodeTiled(
     CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE    // Out-of-bounds handling
 );
 </code></pre>
-<h3>TMA PTX (Device Side)</h3>
+<h3 id="tma-ptx-device-side">TMA PTX (Device Side)</h3>
 <pre><code>// Load a 2D tile from global to shared memory
 // Only ONE thread needs to execute this ;  TMA does all the work
 .reg .pred %is_leader;
@@ -1455,7 +1455,7 @@ WAIT:
 mbarrier.try_wait.parity.shared.b64 %wait_result, [mbar_addr], %phase;
 @!%wait_result bra WAIT;
 </code></pre>
-<h3>TMA Multicast (Load once, deliver to multiple CTAs)</h3>
+<h3 id="tma-multicast-load-once-deliver-to-multiple-ctas">TMA Multicast (Load once, deliver to multiple CTAs)</h3>
 <pre><code>// Load tile and multicast to CTAs 0, 1, 2, 3 in a cluster
 @%is_leader cp.async.bulk.tensor.2d.shared::cluster.global.tile
     .mbarrier::complete_tx::bytes
@@ -1469,9 +1469,9 @@ mbarrier.try_wait.parity.shared.b64 %wait_result, [mbar_addr], %phase;
 <p><strong>Why TMA is revolutionary</strong>: Without TMA, 128 threads waste time computing addresses, doing bounds checks, and issuing individual loads. With TMA, <strong>one instruction</strong> replaces all of that. The freed-up threads do useful compute instead.</p>
 </blockquote>
 <hr>
-<h2>3.6 WGMMA: The Warpgroup Matrix Machine</h2>
+<h2 id="36-wgmma-the-warpgroup-matrix-machine">3.6 WGMMA: The Warpgroup Matrix Machine</h2>
 <p><strong>WGMMA</strong> (Warpgroup Matrix Multiply-Accumulate) is Hopper&#39;s Tensor Core interface. It operates at the <strong>warpgroup</strong> level: 4 warps (128 threads) acting as a unit.</p>
-<h3>Why Warpgroups?</h3>
+<h3 id="why-warpgroups">Why Warpgroups?</h3>
 <pre class="mermaid">graph TD
     subgraph "Volta/Ampere: Warp-level MMA"
         W0["1 Warp = 32 threads<br/>wmma.mma.sync 16x16x16<br/>= 8,192 FLOPs"]
@@ -1483,7 +1483,7 @@ mbarrier.try_wait.parity.shared.b64 %wait_result, [mbar_addr], %phase;
 
     style W0 fill:#3498db,stroke:#333,color:#fff
     style WG fill:#e74c3c,stroke:#333,color:#fff</pre>
-<h3>WGMMA Key Innovation</h3>
+<h3 id="wgmma-key-innovation">WGMMA Key Innovation</h3>
 <p><strong>Operand B can come directly from shared memory</strong> ;  no need to load it into registers first:</p>
 <pre class="mermaid">graph LR
     subgraph "Volta wmma"
@@ -1503,7 +1503,7 @@ mbarrier.try_wait.parity.shared.b64 %wait_result, [mbar_addr], %phase;
 <blockquote>
 <p><strong>Key</strong>: B reads shared memory directly! This saves register bandwidth.</p>
 </blockquote>
-<h3>WGMMA PTX</h3>
+<h3 id="wgmma-ptx">WGMMA PTX</h3>
 <pre><code>// ==========================================
 // Hopper WGMMA: 64x256x16 FP16 to FP32
 // ==========================================
@@ -1561,7 +1561,7 @@ wgmma.wait_group.sync.aligned 0;  // 0 = wait for all groups
 
 // Now %acc0..%acc127 contain the 64x256 result matrix
 </code></pre>
-<h3>WGMMA Descriptor Layout</h3>
+<h3 id="wgmma-descriptor-layout">WGMMA Descriptor Layout</h3>
 <p>The 64-bit descriptor encodes the shared memory tile location:</p>
 <pre><code>Bits 63-49: Reserved
 Bits 48-46: Leading dimension mode
@@ -1570,7 +1570,7 @@ Bits 31-16: Leading dimension byte offset
 Bits 15-4:  Stride dimension byte offset
 Bits 3-0:   Swizzle mode
 </code></pre>
-<h3>Complete Hopper GEMM Pattern</h3>
+<h3 id="complete-hopper-gemm-pattern">Complete Hopper GEMM Pattern</h3>
 <pre class="mermaid">sequenceDiagram
     participant TMA as TMA Engine
     participant SMEM as Shared Memory
@@ -1594,8 +1594,8 @@ Bits 3-0:   Swizzle mode
     WG->>TMA: Issue TMA load for tile k+2
     WG->>TC: wgmma.mma_async (on tile k+1 data)</pre>
 <hr>
-<h1>Hour 4 ;  Blackwell: The Fifth Generation</h1>
-<h2>4.1 Blackwell Architecture Overview</h2>
+<h1 id="hour-4--blackwell-the-fifth-generation">Hour 4 ;  Blackwell: The Fifth Generation</h1>
+<h2 id="41-blackwell-architecture-overview">4.1 Blackwell Architecture Overview</h2>
 <p><strong>Blackwell</strong> (2024) ;  compute capability <strong>sm_100</strong> (data center) and <strong>sm_120</strong> (desktop).</p>
 <pre class="mermaid">graph TD
     subgraph GB100["GB100 Full Die"]
@@ -1622,7 +1622,7 @@ Bits 3-0:   Swizzle mode
     style NVLINK fill:#2ecc71,stroke:#333,color:#fff
     style TMEM_B fill:#e74c3c,stroke:#fff,color:#fff
     style TC_B fill:#c0392b,stroke:#333,color:#fff</pre>
-<h3>What&#39;s New in Blackwell</h3>
+<h3 id="whats-new-in-blackwell">What&#39;s New in Blackwell</h3>
 <table>
 <thead>
 <tr>
@@ -1700,7 +1700,7 @@ Bits 3-0:   Swizzle mode
 </tr>
 </tbody></table>
 <hr>
-<h2>4.2 Tensor Memory (TMEM): A New Address Space</h2>
+<h2 id="42-tensor-memory-tmem-a-new-address-space">4.2 Tensor Memory (TMEM): A New Address Space</h2>
 <p>This is the single biggest architectural change in Blackwell. <strong>TMEM</strong> is a new, dedicated memory space that lives inside the SM, separate from both registers and shared memory.</p>
 <pre class="mermaid">graph TD
     subgraph "Hopper Memory Spaces"
@@ -1721,7 +1721,7 @@ Bits 3-0:   Swizzle mode
     style TMEM_BW fill:#e74c3c,stroke:#fff,color:#fff
     style REG_BW fill:#f1c40f,stroke:#333,color:#000
     style SMEM_BW fill:#3498db,stroke:#333,color:#fff</pre>
-<h3>Why TMEM Exists</h3>
+<h3 id="why-tmem-exists">Why TMEM Exists</h3>
 <p>On Hopper, WGMMA results accumulate in <strong>registers</strong>. But the register file has limited bandwidth ;  reading/writing 128 accumulator registers per warpgroup per MMA creates a bottleneck. The register file is also used for general computation.</p>
 <p>TMEM solves this by giving the Tensor Cores their own <strong>private, high-bandwidth storage</strong>:</p>
 <ul>
@@ -1730,7 +1730,7 @@ Bits 3-0:   Swizzle mode
 <li>The register file is freed for other work (address computation, control flow)</li>
 <li>TMEM has <strong>higher bandwidth</strong> to the Tensor Cores than the register file</li>
 </ul>
-<h3>TMEM Access Patterns</h3>
+<h3 id="tmem-access-patterns">TMEM Access Patterns</h3>
 <pre><code>// TMEM is accessed ONLY via tcgen05 instructions:
 
 // Load from shared memory INTO TMEM
@@ -1748,9 +1748,9 @@ tcgen05.mma ... [tmem_addr], ...;  // Accumulator in TMEM
 // - Use TMEM for general-purpose storage
 </code></pre>
 <hr>
-<h2>4.3 tcgen05: The Fifth-Gen Tensor Core ISA</h2>
+<h2 id="43-tcgen05-the-fifth-gen-tensor-core-isa">4.3 tcgen05: The Fifth-Gen Tensor Core ISA</h2>
 <p><strong>tcgen05</strong> = <strong>T</strong>ensor <strong>C</strong>ore <strong>Gen</strong>eration <strong>05</strong> ;  the instruction set for Blackwell&#39;s 5th-gen Tensor Cores.</p>
-<h3>Instruction Overview</h3>
+<h3 id="instruction-overview">Instruction Overview</h3>
 <pre class="mermaid">graph TD
     subgraph "tcgen05 Instruction Family"
         MMA["tcgen05.mma<br/>Matrix Multiply-Accumulate<br/>The main compute instruction"]
@@ -1770,7 +1770,7 @@ tcgen05.mma ... [tmem_addr], ...;  // Accumulator in TMEM
     style ST fill:#2ecc71,stroke:#333,color:#fff
     style FENCE fill:#e67e22,stroke:#333,color:#fff
     style COMMIT fill:#9b59b6,stroke:#333,color:#fff</pre>
-<h3>tcgen05.mma ;  The Core Instruction</h3>
+<h3 id="tcgen05mma--the-core-instruction">tcgen05.mma ;  The Core Instruction</h3>
 <pre><code>tcgen05.mma.cta_group::{1,2}.kind [d_tmem], a_desc, b_desc, idesc, enable;
 </code></pre>
 <p>Let&#39;s break down every operand:</p>
@@ -1810,7 +1810,7 @@ tcgen05.mma ... [tmem_addr], ...;  // Accumulator in TMEM
 <td>Predicate ;  allows conditional execution</td>
 </tr>
 </tbody></table>
-<h3>PTX Example: tcgen05.mma</h3>
+<h3 id="ptx-example-tcgen05mma">PTX Example: tcgen05.mma</h3>
 <pre><code>// =============================================
 // Blackwell tcgen05.mma: FP16 Matrix Multiply
 // =============================================
@@ -1838,7 +1838,7 @@ TRY_WAIT_TC:
 mbarrier.try_wait.parity.shared.b64 %done, [%mbar_addr], %phase;
 @!%done bra TRY_WAIT_TC;
 </code></pre>
-<h3>tcgen05 Load/Store ;  Moving Data To/From TMEM</h3>
+<h3 id="tcgen05-loadstore--moving-data-tofrom-tmem">tcgen05 Load/Store ;  Moving Data To/From TMEM</h3>
 <pre><code>// Load: Shared Memory to TMEM
 // Transfers a 16x256-bit tile (16 rows, each 256 bits = 32 bytes)
 tcgen05.ld.16x256b [%tmem_addr], [%smem_addr];
@@ -1846,7 +1846,7 @@ tcgen05.ld.16x256b [%tmem_addr], [%smem_addr];
 // Store: TMEM to Shared Memory
 tcgen05.st.16x256b [%smem_addr], [%tmem_addr];
 </code></pre>
-<h3>tcgen05 vs WGMMA Comparison</h3>
+<h3 id="tcgen05-vs-wgmma-comparison">tcgen05 vs WGMMA Comparison</h3>
 <pre class="mermaid">graph LR
     subgraph "Hopper WGMMA Flow"
         direction TB
@@ -1875,7 +1875,7 @@ tcgen05.st.16x256b [%smem_addr], [%tmem_addr];
     style B3 fill:#e74c3c,stroke:#333,color:#fff
     style B4 fill:#e74c3c,stroke:#333,color:#fff</pre>
 <p><strong>Key difference</strong>: In Blackwell, the accumulator <strong>never touches the register file</strong> during the MMA. It lives entirely in TMEM. This frees registers for address computation, control flow, and other work. The register file is no longer the bottleneck for Tensor Core throughput.</p>
-<h3>CTA-Group MMA: Two CTAs, One MMA</h3>
+<h3 id="cta-group-mma-two-ctas-one-mma">CTA-Group MMA: Two CTAs, One MMA</h3>
 <pre><code>// Two CTAs in a cluster collaborate on a single, larger MMA
 tcgen05.mma.cta_group::2.kind::f16
     [%tmem_d], %desc_a, %desc_b, %idesc, %enable;
@@ -1885,8 +1885,8 @@ tcgen05.mma.cta_group::2.kind::f16
 // Result: larger effective tile size = better utilization
 </code></pre>
 <hr>
-<h2>4.4 FP4 and Microscaling: Extreme Precision Engineering</h2>
-<h3>FP4: E2M1 Format</h3>
+<h2 id="44-fp4-and-microscaling-extreme-precision-engineering">4.4 FP4 and Microscaling: Extreme Precision Engineering</h2>
+<h3 id="fp4-e2m1-format">FP4: E2M1 Format</h3>
 <pre><code>+------+----------+----------+
 | Sign | Exponent | Mantissa |
 | 1 bit|  2 bits  |  1 bit   |
@@ -1900,7 +1900,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
       = (-1)^s x 2^(e-1) x {1.0, 1.5}
 </code></pre>
 <p><strong>Only 16 representable values!</strong> How can this possibly work?</p>
-<h3>Microscaling (MX) Formats</h3>
+<h3 id="microscaling-mx-formats">Microscaling (MX) Formats</h3>
 <p>The trick: <strong>block-level scaling factors</strong>. Instead of each element having its own exponent, a <strong>block</strong> of elements shares one scale:</p>
 <pre class="mermaid">graph TD
     subgraph "Standard FP16"
@@ -1930,7 +1930,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
     style M31 fill:#3498db,stroke:#333,color:#fff</pre>
 <p><strong>Effective value</strong>: <span class="math-inline">$v_i = \text{scale} \times \text{fp4}_i = 2^{\text{shared\\_exp}} \times (-1)^{s_i} \times 2^{(e_i - 1)} \times (1 + m_i/2)$</span></p>
 <p>This gives FP4 the <strong>dynamic range</strong> of ~FP16 with the <strong>storage cost</strong> of 4 bits + amortized scale overhead.</p>
-<h3>Why This Matters for Transformers</h3>
+<h3 id="why-this-matters-for-transformers">Why This Matters for Transformers</h3>
 <p>In transformer inference:</p>
 <ul>
 <li>Attention scores and FFN weights have <strong>relatively uniform magnitudes within blocks</strong></li>
@@ -1939,7 +1939,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
 <li>The 2nd-gen <strong>Transformer Engine</strong> automatically manages these scales</li>
 </ul>
 <p><strong>Result</strong>: 2x the throughput of FP8, with minimal accuracy loss.</p>
-<h3>MX Format Variants on Blackwell</h3>
+<h3 id="mx-format-variants-on-blackwell">MX Format Variants on Blackwell</h3>
 <table>
 <thead>
 <tr>
@@ -1973,7 +1973,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
 </tr>
 </tbody></table>
 <hr>
-<h2>4.5 Putting It All Together: A Blackwell GEMM Kernel</h2>
+<h2 id="45-putting-it-all-together-a-blackwell-gemm-kernel">4.5 Putting It All Together: A Blackwell GEMM Kernel</h2>
 <p>Here&#39;s the complete data flow for a high-performance GEMM on Blackwell:</p>
 <pre class="mermaid">graph TD
     subgraph "Global Memory HBM3e"
@@ -2018,7 +2018,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
     style ACC fill:#c0392b,stroke:#333,color:#fff
     style TMA_A fill:#2ecc71,stroke:#333,color:#fff
     style TMA_B fill:#2ecc71,stroke:#333,color:#fff</pre>
-<h3>CUDA/PTX Pseudocode: Blackwell GEMM</h3>
+<h3 id="cudaptx-pseudocode-blackwell-gemm">CUDA/PTX Pseudocode: Blackwell GEMM</h3>
 <pre><code class="language-cuda">// =============================================
 // Blackwell GEMM Kernel (Conceptual Structure)
 // Uses: TMA + tcgen05.mma + TMEM + mbarrier
@@ -2176,8 +2176,8 @@ __global__ void blackwell_gemm(
 }
 </code></pre>
 <hr>
-<h2>4.6 The Full Picture: Architecture Comparison</h2>
-<h3>Evolution of GPU Tensor Core Programming</h3>
+<h2 id="46-the-full-picture-architecture-comparison">4.6 The Full Picture: Architecture Comparison</h2>
+<h3 id="evolution-of-gpu-tensor-core-programming">Evolution of GPU Tensor Core Programming</h3>
 <pre class="mermaid">graph TD
     V["Volta 2017<br/>wmma.mma.sync<br/>Warp-level: 32 threads<br/>16x16x16 tiles<br/>FP16 only<br/>Data: Reg to TC to Reg"]
 
@@ -2193,7 +2193,7 @@ __global__ void blackwell_gemm(
     style A fill:#00b894,stroke:#333,color:#fff
     style H fill:#fdcb6e,stroke:#333,color:#000
     style B fill:#e17055,stroke:#333,color:#fff</pre>
-<h3>Peak Performance Across Generations</h3>
+<h3 id="peak-performance-across-generations">Peak Performance Across Generations</h3>
 <table>
 <thead>
 <tr>
@@ -2233,7 +2233,7 @@ __global__ void blackwell_gemm(
 <td>8.0</td>
 </tr>
 </tbody></table>
-<h3>The Memory Wall: Compute Grows Faster Than Memory</h3>
+<h3 id="the-memory-wall-compute-grows-faster-than-memory">The Memory Wall: Compute Grows Faster Than Memory</h3>
 <pre class="mermaid">graph TD
     COMPUTE["Compute Growth:<br/>~4x per generation<br/>V100 to B200: ~72x"] --> GAP
     MEMORY["Memory BW Growth:<br/>~2x per generation<br/>V100 to B200: ~9x"] --> GAP
@@ -2252,8 +2252,8 @@ __global__ void blackwell_gemm(
     style SOL4 fill:#2ecc71,stroke:#333,color:#fff
     style SOL5 fill:#2ecc71,stroke:#333,color:#fff</pre>
 <hr>
-<h1>Appendix A ;  PTX Quick Reference</h1>
-<h3>Memory Spaces</h3>
+<h1 id="appendix-a--ptx-quick-reference">Appendix A ;  PTX Quick Reference</h1>
+<h3 id="memory-spaces">Memory Spaces</h3>
 <pre><code>// PTX memory space qualifiers:
 .global     // GPU HBM / GDDR (slowest, largest)
 .shared     // Per-SM shared memory
@@ -2264,7 +2264,7 @@ __global__ void blackwell_gemm(
 // Blackwell only:
 // TMEM: accessed via tcgen05 instructions (not a PTX address space qualifier)
 </code></pre>
-<h3>Essential Instructions</h3>
+<h3 id="essential-instructions">Essential Instructions</h3>
 <pre><code>// ===== Arithmetic =====
 add.f32     %f0, %f1, %f2;      // f0 = f1 + f2
 mul.f32     %f0, %f1, %f2;      // f0 = f1 * f2
@@ -2326,8 +2326,8 @@ setp.lt.f32  %p0, %f0, %f1;     // p0 = (f0 &lt; f1)
 bar.sync     0;                  // __syncthreads()
 </code></pre>
 <hr>
-<h1>Appendix B ;  Occupancy Calculator Cheat Sheet</h1>
-<h3>Quick Reference Table (SM90 ;  Hopper)</h3>
+<h1 id="appendix-b--occupancy-calculator-cheat-sheet">Appendix B ;  Occupancy Calculator Cheat Sheet</h1>
+<h3 id="quick-reference-table-sm90--hopper">Quick Reference Table (SM90 ;  Hopper)</h3>
 <table>
 <thead>
 <tr>
@@ -2395,7 +2395,7 @@ bar.sync     0;                  // __syncthreads()
 <td>Maximum registers allowed</td>
 </tr>
 </tbody></table>
-<h3>Formulas</h3>
+<h3 id="formulas">Formulas</h3>
 <p><div class="math-display">$$\text{Warps from registers} = \left\lfloor \frac{65536}{\text{regs/thread} \times 32} \right\rfloor$$</div></p>
 <p><div class="math-display">$$\text{Warps from shared mem} = \min\left( \left\lfloor \frac{\text{max smem per SM}}{\text{smem per block}} \right\rfloor \times \frac{\text{threads per block}}{32}, \; 64 \right)$$</div></p>
 <p><div class="math-display">$$\text{Occupancy} = \frac{\min(\text{warps from regs}, \text{warps from smem}, \text{warps from blocks})}{64}$$</div></p>

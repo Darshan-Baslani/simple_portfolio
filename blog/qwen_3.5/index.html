@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/qwen_3.5/"
   },
   "keywords": "Triton",
-  "wordCount": 3524,
+  "wordCount": 3557,
   "timeRequired": "PT18M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5</h1>
+<h1 id="breaking-pytorch-boundaries-fusing-rmsnorm-and-gdn-in-triton-for-qwen-35">Breaking PyTorch Boundaries: Fusing RMSNorm and GDN in Triton for Qwen 3.5</h1>
 <p>I rebuilt the inference stack for Qwen 3.5 (9B) from scratch in PyTorch, profiled it, and replaced the key bottlenecks with hand-written Triton GPU kernels. By fusing memory-bound operations and rewriting the Gated Delta Network (GDN) linear attention layers to run without slow Python loops, I bumped throughput from <strong>16 to 83 tokens/second</strong> on a single NVIDIA B200 (a 5.2x speedup).</p>
 <hr>
-<h2>Table of Contents</h2>
+<h2 id="table-of-contents">Table of Contents</h2>
 <ul>
 <li><a href="#project-overview">Project Overview</a></li>
 <li><a href="#hardware-setup">Hardware Setup</a></li>
@@ -234,7 +234,7 @@
 <li><a href="#takeaways">Takeaways</a></li>
 </ul>
 <hr>
-<h2>Project Overview</h2>
+<h2 id="project-overview">Project Overview</h2>
 <p>Unlike vanilla transformers, Qwen 3.5 uses a <strong>hybrid architecture</strong> that interleaves standard multi-head attention layers with <strong>Gated Delta Network (GDN)</strong> linear attention layers. The GDN layers use a recurrent state-space mechanism that compresses past context into a fixed-size state matrix instead of maintaining a growing KV cache.</p>
 <pre><code>Layer 0:  Linear Attention (GDN)
 Layer 1:  Linear Attention (GDN)
@@ -246,7 +246,7 @@ Layer 31: Full Attention (SDPA)
 </code></pre>
 <p>Because <strong>75% of the decoder layers</strong> are GDN layers, optimizing them is critical; they dominate both prefill and decode latency.</p>
 <p>The goal here wasn&#39;t to build a production serving system, but to understand what happens between the CUDA cores and HBM when you run text generation, and to see how much performance we can recover through targeted Triton kernels.</p>
-<h3>Code Components</h3>
+<h3 id="code-components">Code Components</h3>
 <table>
 <thead>
 <tr>
@@ -280,7 +280,7 @@ Layer 31: Full Attention (SDPA)
 </tr>
 </tbody></table>
 <hr>
-<h2>Hardware Setup</h2>
+<h2 id="hardware-setup">Hardware Setup</h2>
 <p>I developed local tests on a GTX 1650 to iterate fast, and ran final benchmarks on an NVIDIA B200 via Modal.</p>
 <pre class="mermaid">graph LR
     subgraph Local["Local Development"]
@@ -325,7 +325,7 @@ Layer 31: Full Attention (SDPA)
 <td>Throughput and profiling</td>
 </tr>
 </tbody></table>
-<h3>Profiling Setup</h3>
+<h3 id="profiling-setup">Profiling Setup</h3>
 <p>I captured profiler traces on the B200 using PyTorch&#39;s built-in <code>torch.profiler</code> with CPU + CUDA activity recording and memory tracking. The profiling script (<a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/inference-torch-profiler.py">inference-torch-profiler.py</a>) profiles the prefill pass and a few decode steps, exporting Chrome traces for analysis.</p>
 <p>I ran profiles at three main development stages:</p>
 <div class="gh-alert gh-alert-warning">
@@ -361,8 +361,8 @@ Layer 31: Full Attention (SDPA)
 </tr>
 </tbody></table>
 <hr>
-<h2>Finding the Bottlenecks</h2>
-<h3>The Initial Trace</h3>
+<h2 id="finding-the-bottlenecks">Finding the Bottlenecks</h2>
+<h3 id="the-initial-trace">The Initial Trace</h3>
 <p>I started by profiling the baseline PyTorch model on the B200 to see where the actual execution time was spent.</p>
 <p><img src="/blog/images/initial_trace.jpg" alt="Initial trace showing a single decode step and the cascade of tiny CUDA kernels"></p>
 <p>The trace showed a classic memory-bandwidth bottleneck. A single decode step; which should ideally consist of a few fused operations; was launching dozens of tiny individual CUDA kernels:</p>
@@ -374,7 +374,7 @@ aten::mul          →  25 µs  (weight application)
 aten::to           →  15 µs  (dtype cast)
 </code></pre>
 <p>Each of these operations touches HBM; reading the hidden state (8 KB per token), performing one arithmetic step, and writing the result back. The real bottleneck wasn&#39;t the arithmetic; it was the kernel launch overhead and memory roundtrips.</p>
-<h3>The Abstraction Bottleneck</h3>
+<h3 id="the-abstraction-bottleneck">The Abstraction Bottleneck</h3>
 <p>The standard PyTorch pattern treats each layer and operation as an isolated object:</p>
 <pre class="mermaid">graph TB
     subgraph Standard["Standard PyTorch Pattern (Memory-Bound)"]
@@ -394,8 +394,8 @@ aten::to           →  15 µs  (dtype cast)
 <p>That means <strong>six HBM round-trips for a single normalization</strong>. On the B200, each round-trip for a 4096-dim hidden state costs very little time in raw transfer, but the launch overhead for each tiny kernel is 20-50 µs. Multiply that by 32 layers and 2 norms per layer, and you get <strong>64 normalization passes per decode step</strong>.</p>
 <p>Essentially, PyTorch&#39;s module abstraction (where each layer/operation is a self-contained forward pass) forces separate kernel launches and intermediate memory writes, which kills performance on the GPU.</p>
 <hr>
-<h2>Fusing the Residual Stream</h2>
-<h3>Passing the Residual Stream Down</h3>
+<h2 id="fusing-the-residual-stream">Fusing the Residual Stream</h2>
+<h3 id="passing-the-residual-stream-down">Passing the Residual Stream Down</h3>
 <p>To fix this, we can adopt a trick used by systems like vLLM: pass the residual stream as an independent tensor so that the next layer&#39;s normalization kernel can fuse both the addition and the normalization step.</p>
 <p>Instead of:</p>
 <pre><code class="language-python"># Standard: Layer owns its residual
@@ -405,7 +405,7 @@ hidden = layer_norm(hidden + residual)
 <pre><code class="language-python"># Fused: Residual flows between layers
 hidden, residual = fused_norm(hidden, residual)
 </code></pre>
-<h3>The Fused Triton Kernel</h3>
+<h3 id="the-fused-triton-kernel">The Fused Triton Kernel</h3>
 <p>Here is the Triton implementation:</p>
 <pre><code class="language-python">@triton.jit
 def _fused_zero_centered_rmsnorm(
@@ -442,13 +442,13 @@ def _fused_zero_centered_rmsnorm(
     # Step 5: Write normalized output to HBM (the ONLY HBM write)
     tl.store(Y_ptr + row_idx * Y_row_stride + col_offsets, Y_row.to(S_row_dtype), mask=mask)
 </code></pre>
-<h3>Key Implementation Details</h3>
+<h3 id="key-implementation-details">Key Implementation Details</h3>
 <ol>
 <li><strong>Zero-Centered Weights:</strong> Standard RMSNorm applies <code>output = norm(x) * weight</code>. Qwen 3.5 uses zero-centered weights initialized at 0, applying <code>output = norm(x) * (1.0 + weight)</code>. Standard RMSNorm kernels will output incorrect activations and cause the model to diverge.</li>
 <li><strong>FP32 Accumulation:</strong> We must upcast the accumulated sum to FP32 before computing the variance. BF16&#39;s limited precision causes compounding rounding errors across 32 layers, leading to numerical divergence.</li>
 <li><strong>Dual Outputs:</strong> The kernel outputs the normalized hidden state <code>Y</code> and the new residual <code>S</code> in one go. While <code>S</code> still gets written to HBM for the next layer, the fusion eliminates 5 intermediate round-trips and launches.</li>
 </ol>
-<h3>Memory Traffic and Kernel Launches</h3>
+<h3 id="memory-traffic-and-kernel-launches">Memory Traffic and Kernel Launches</h3>
 <pre class="mermaid">graph TB
     subgraph Fused["Fused Triton Kernel (1 Launch)"]
         direction TB
@@ -487,7 +487,7 @@ def _fused_zero_centered_rmsnorm(
 <td><strong>320 per step</strong></td>
 </tr>
 </tbody></table>
-<h3>Restructuring the Decoder Layer</h3>
+<h3 id="restructuring-the-decoder-layer">Restructuring the Decoder Layer</h3>
 <p>We also need to map the standard HuggingFace weights into our fused model format during loading (duplicating <code>input_layernorm.weight</code> into both a <code>standard</code> and <code>fused</code> slot).</p>
 <pre><code class="language-python">class Qwen3_5DecoderLayer(nn.Module):
     def forward(self, hidden_states, residual, ...):
@@ -508,7 +508,7 @@ def _fused_zero_centered_rmsnorm(
 
         return hidden_states, residual  # ← residual flows to next layer
 </code></pre>
-<h3>Performance Gains (Stage 1)</h3>
+<h3 id="performance-gains-stage-1">Performance Gains (Stage 1)</h3>
 <p><img src="/blog/images/fused_rms_norm.png" alt="Profiler trace after applying fused RMSNorm, showing reduced kernel launch density"></p>
 <table>
 <thead>
@@ -528,8 +528,8 @@ def _fused_zero_centered_rmsnorm(
 </tbody></table>
 <p>Fusing RMSNorm and residual addition got us to ~50 tokens/sec. However, the profiler showed we were still heavily bottlenecked by the Gated Delta Network (GDN) linear attention layers, which were still running in pure PyTorch with sequential Python loops.</p>
 <hr>
-<h2>Optimizing Gated Delta Attention</h2>
-<h3>GDN Attention vs. Standard Attention</h3>
+<h2 id="optimizing-gated-delta-attention">Optimizing Gated Delta Attention</h2>
+<h3 id="gdn-attention-vs-standard-attention">GDN Attention vs. Standard Attention</h3>
 <p>Standard multi-head attention processes all tokens in parallel via <span class="math-inline">$Q K^\top V$</span>. The KV cache grows linearly with sequence length, but the attention computation itself is highly parallelizable.</p>
 <p>GDN linear attention works differently. It maintains a <strong>fixed-size recurrent state matrix</strong> <span class="math-inline">$H \in \mathbb{R}^{K \times V}$</span> (128 × 128 = 16 KB per head) that compresses all past context:</p>
 <pre class="mermaid">graph LR
@@ -554,7 +554,7 @@ def _fused_zero_centered_rmsnorm(
 <div class="math-display">$$o_t = q_t^\top \cdot H_{t+1}$$</div></p>
 <p>Where the learned gating decay <span class="math-inline">$\gamma_t$</span> is defined as:
 <div class="math-display">$$\gamma_t = \exp\left(-\exp(A_{\text{log}}) \cdot \text{softplus}(a_t + \text{dt}_{\text{bias}})\right)$$</div></p>
-<h3>The Bottleneck: Sequential Loops in PyTorch</h3>
+<h3 id="the-bottleneck-sequential-loops-in-pytorch">The Bottleneck: Sequential Loops in PyTorch</h3>
 <p>The initial PyTorch implementation processed chunks sequentially using a Python <code>for</code> loop:</p>
 <pre><code class="language-python"># The bottleneck: sequential iteration
 for i in range(total_sequence_length // chunk_size):
@@ -579,9 +579,9 @@ for i in range(total_sequence_length // chunk_size):
 <p>This results in:
 <div class="math-display">$$\text{Total HBM Traffic} = 8 \text{ chunks} \times (2\text{ MB read} + 2\text{ MB write}) = 32\text{ MB}$$</div></p>
 <p>This is 32 MB of redundant memory transfers per layer. All of this state could instead live entirely in the GPU&#39;s SRAM (shared memory) during the entire forward pass.</p>
-<h3>Writing the Triton Chunkwise GDN Kernel</h3>
+<h3 id="writing-the-triton-chunkwise-gdn-kernel">Writing the Triton Chunkwise GDN Kernel</h3>
 <p>To parallelize this, we use the chunkwise formulation from the <a href="https://github.com/fla-org/flash-linear-attention">Flash Linear Attention (FLA)</a> paper: intra-chunk interactions are computed in parallel via matrix multiplications, while the inter-chunk state updates are propagated sequentially while keeping the state matrix in SRAM.</p>
-<h4>Prefill Kernel Architecture</h4>
+<h4 id="prefill-kernel-architecture">Prefill Kernel Architecture</h4>
 <p>The prefill is split into two phases for maximum parallelism:</p>
 <pre class="mermaid">flowchart TB
     subgraph Phase1["Phase 1: WY Prepass (Embarrassingly Parallel)"]
@@ -608,7 +608,7 @@ for i in range(total_sequence_length // chunk_size):
     end
 
     Phase1 -->|"WY data in HBM"| Phase2</pre>
-<h4>The WY Decomposition</h4>
+<h4 id="the-wy-decomposition">The WY Decomposition</h4>
 <p>The intra-chunk math uses the delta rule to formulate a lower-triangular system:</p>
 <p><div class="math-display">$$(I + N) \cdot X = \beta \cdot \left(\frac{V}{G} - K \cdot S_{\text{in}}^\top\right)$$</div></p>
 <p>Where <span class="math-inline">$N$</span> is a strictly lower-triangular nilpotent matrix (<span class="math-inline">$N[j,i] = \beta_j \cdot (k_j \cdot k_i)$</span> for <span class="math-inline">$i &lt; j$</span>). Since <span class="math-inline">$N$</span> is nilpotent of order <span class="math-inline">$C$</span> (chunk size), we can invert <span class="math-inline">$(I+N)$</span> exactly using the Neumann series:</p>
@@ -632,7 +632,7 @@ def _apply_unit_lower_inverse(nil, rhs, BV: tl.constexpr, CHUNK: tl.constexpr):
         sol = sol + _dot_f32(power, sol)   # += N¹⁶ @ sol
     return sol
 </code></pre>
-<h4>Blackwell-Specific Optimizations</h4>
+<h4 id="blackwell-specific-optimizations">Blackwell-Specific Optimizations</h4>
 <p>Getting clean performance on the B200 required a few low-level adjustments:</p>
 <ol>
 <li><strong>Precision Splitting (TF32 vs. BF16):</strong> The nilpotent inverse chain uses TF32 (19-bit mantissa) since numerical errors compound quickly across the log-depth doubling chain. For the large K=128 contractions (<code>K @ K^T</code>, <code>Q @ state^T</code>), we use BF16 tensor cores to get a 4x speedup, where rounding is bounded for single-shot matmuls.</li>
@@ -678,7 +678,7 @@ def _dot_f32(a, b):
 <td>Reduces sync overhead on smaller sequence batches</td>
 </tr>
 </tbody></table>
-<h4>The Decode Kernel</h4>
+<h4 id="the-decode-kernel">The Decode Kernel</h4>
 <p>For the single-token decode kernel, things are simpler since we don&#39;t need chunking. We map the grid over batch and heads:</p>
 <ol>
 <li>Load the state tile <span class="math-inline">$H[\text{BV}, K]$</span> from HBM (single read).</li>
@@ -713,7 +713,7 @@ def gdn_decode_kernel(...):
 <p class="gh-alert-title"><span class="gh-alert-icon">💡</span> Tip</p>
 <p>Storing the output <em>before</em> computing <code>state_out</code> frees up registers and prevents local memory spilling. Since Blackwell caps registers at 255 per thread, this manual scheduling prevents register spills.</p>
 </div>
-<h3>Performance Gains (Stage 2)</h3>
+<h3 id="performance-gains-stage-2">Performance Gains (Stage 2)</h3>
 <p><img src="/blog/images/triton_linear_attention.png" alt="Profiler trace with fused GDN kernels, showing a clean decode step free of Python loop overhead"></p>
 <table>
 <thead>
@@ -740,21 +740,21 @@ def gdn_decode_kernel(...):
 </tr>
 </tbody></table>
 <hr>
-<h2>Triton vs. Other Frameworks</h2>
+<h2 id="triton-vs-other-frameworks">Triton vs. Other Frameworks</h2>
 <p>When choosing how to write these kernels, there were three main options:</p>
 <ol>
 <li><strong>Triton:</strong> Fast iteration, Python-based, portable. But we lose low-level control over TMA (Tensor Memory Accelerator) and ran into compiler bugs on Blackwell.</li>
 <li><strong>TileLang:</strong> Good compromise, offers warp specialization and better occupancy control, but the ecosystem is very young.</li>
 <li><strong>CuTe / CUTLASS (C++):</strong> Maximum performance, explicit layout swizzling, and full control over asynchronous memory copies. But it requires writing 3,000+ lines of C++ template metaprogramming per kernel, adding weeks of development.</li>
 </ol>
-<h3>Where Triton Falls Short on Blackwell</h3>
+<h3 id="where-triton-falls-short-on-blackwell">Where Triton Falls Short on Blackwell</h3>
 <p>Writing kernels for the B200 highlighted a few areas where Triton&#39;s compiler abstractions hit limits:</p>
 <ul>
 <li><strong>TMA Control:</strong> The B200 features a Tensor Memory Accelerator to prefetch data asynchronously. Triton abstracts this, meaning we cannot manually orchestrate tile prefetching or schedule memory loads.</li>
 <li><strong>Swizzle Layouts:</strong> Preventing bank conflicts in shared memory requires specific data layouts. Triton manages this automatically but can generate suboptimal swizzling patterns for non-power-of-two tiles.</li>
 <li><strong>Compiler Bugs:</strong> The code-generation bug in <code>TritonGPUHoistTMEMAlloc</code> meant we had to resort to inline PTX assembly barriers.</li>
 </ul>
-<h3>Why I Stuck With Triton</h3>
+<h3 id="why-i-stuck-with-triton">Why I Stuck With Triton</h3>
 <p>Even with these issues, Triton was the right choice for this project:</p>
 <table>
 <thead>
@@ -792,7 +792,7 @@ def gdn_decode_kernel(...):
 </tbody></table>
 <p>Ultimately, hitting 83 tokens/second in a couple of weeks with Triton is a much better engineering tradeoff than spending months in C++ to chase a marginal single-digit performance gain.</p>
 <hr>
-<h2>Comparison with vLLM</h2>
+<h2 id="comparison-with-vllm">Comparison with vLLM</h2>
 <p>To see where these optimizations stand relative to a production serving system, I benchmarked our setup against vLLM on the same B200 hardware:</p>
 <table>
 <thead>
@@ -813,7 +813,7 @@ def gdn_decode_kernel(...):
 <td>Production stack (PagedAttention, CUDA Graphs, scheduling)</td>
 </tr>
 </tbody></table>
-<h3>Analyzing the Performance Difference</h3>
+<h3 id="analyzing-the-performance-difference">Analyzing the Performance Difference</h3>
 <p>The 3x throughput gap is due to systems-level architecture rather than raw kernel execution speeds:</p>
 <table>
 <thead>
@@ -845,7 +845,7 @@ def gdn_decode_kernel(...):
 </tr>
 </tbody></table>
 <p>In a production environment, kernel and systems-level optimizations are complementary. The custom Triton kernels developed here could be plugged directly into an engine like vLLM to gain the benefits of PagedAttention and CUDA Graphs.</p>
-<h3>When to Stop Optimizing</h3>
+<h3 id="when-to-stop-optimizing">When to Stop Optimizing</h3>
 <p>At 83 tokens/second, we hit the point of diminishing returns for kernel optimization:</p>
 <ul>
 <li>Getting from 16 to 83 tokens/sec required about 1,100 lines of Triton.</li>
@@ -853,14 +853,14 @@ def gdn_decode_kernel(...):
 </ul>
 <p>Because the core performance bottleneck is now CPU dispatch and framework overhead, further micro-tuning the Triton kernels wouldn&#39;t make sense.</p>
 <hr>
-<h2>Takeaways</h2>
+<h2 id="takeaways">Takeaways</h2>
 <p>Writing high-performance GPU kernels is mostly about respecting the memory hierarchy:</p>
 <ol>
 <li><strong>Keep data in SRAM:</strong> Moving intermediate states back and forth to HBM wastes bandwidth. Keep inputs in shared memory as long as possible.</li>
 <li><strong>Minimize kernel launches:</strong> Fusing dependent operations (like residual additions and normalization) cuts launch overhead.</li>
 <li><strong>Eliminate Python loops:</strong> Replace sequential execution paths with chunked, parallel CUDA blocks.</li>
 </ol>
-<h3>Quick Stats</h3>
+<h3 id="quick-stats">Quick Stats</h3>
 <ul>
 <li><strong>Model:</strong> Qwen 3.5-9B (hybrid GDN + multi-head attention)</li>
 <li><strong>Hardware:</strong> NVIDIA B200 (192 GB HBM3e)</li>

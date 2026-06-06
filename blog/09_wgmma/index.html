@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/09_wgmma/"
   },
   "keywords": "CUDA",
-  "wordCount": 570,
+  "wordCount": 576,
   "timeRequired": "PT3M"
 }
     </script>
@@ -219,13 +219,13 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>09. WGMMA (Warpgroup MMA)</h1>
+<h1 id="09-wgmma-warpgroup-mma">09. WGMMA (Warpgroup MMA)</h1>
 <p><strong>Difficulty:</strong> Advanced
 <strong>Prerequisites:</strong> Tutorial 06: Hello, MMA, Tutorial 08: The TMA Revolution</p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Single warps are too small. We need 128 threads driving the Tensor Core together.
 In previous generations, threads had to load memory from shared memory into their own registers before they could perform an MMA (Matrix Multiply Accumulate). This creates a massive bottleneck: the register file gets saturated, and the <code>ldmatrix</code> instructions waste precious clock cycles. We need a way to feed the Tensor Core directly from the shared memory staging area where the TMA forklift just dropped our data.</p>
-<h2>2. The Mental Model (The Visual)</h2>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
 <p>WGMMA is the <strong>Heavy Industrial Press</strong>. Unlike a standard press where each worker loads their own tray, the WGMMA press reads directly from the forklift&#39;s delivery zone.</p>
 <pre><code class="language-text">Single-Warp MMA (SM80/SM89):
   smem ──(ldmatrix)──▶ registers ──(mma.sync)──▶ accumulators
@@ -244,7 +244,7 @@ WGMMA (SM90):
   smem  smem    (Delivered to multiple CTA factories simultaneously)
   CTA0  CTA1
 </code></pre>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>Here is how you define a WGMMA instruction using CuTe:</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/arch/mma_sm90.hpp&gt;
@@ -273,11 +273,11 @@ void example() {
     // gemm(tiled_mma, frag_A, frag_B, accum);
 }
 </code></pre>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p>Line 14: <code>SM90_64x64x16_F32F16F16_SS&lt;...&gt;</code> defines our specific <code>WGMMA</code> operation. It calculates a 64x64x16 matrix multiply. Crucially, the <code>_SS</code> suffix means both A and B operands will be sourced directly from Shared Memory descriptors, not from registers. The template parameters <code>&lt;GMMA::Major::K, GMMA::Major::K&gt;</code> indicate that both A and B have K as their fast-moving contiguous dimension.</p>
 <p>Line 17: <code>make_tiled_mma</code> binds the instruction to a <code>Warpgroup</code>. CuTe knows that this SM90 atom requires exactly 128 threads (4 warps) and configures the <code>TiledMMA</code> layout automatically to coordinate them.</p>
 <p>Line 26: <code>gemm(...)</code> dispatches the asynchronous <code>wgmma</code> instruction to the hardware. All 128 threads must participate in this call.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p>Analogy: Think of the <code>Warpgroup</code> as a synchronized crew of 4 warps working together as a single unit, and <code>SM90_WGMMA</code> as the Heavy Industrial Press. It takes inputs directly from the forklift&#39;s delivery zone (<code>smem</code> desc) rather than personal trays. <code>tma_multicast</code> is the forklift driver shouting &quot;who else needs this?&quot;, delivering one pallet to multiple factories simultaneously.</p>
 <p>Hardware Note: On Hopper (SM90), WGMMA requires exactly 128 threads. You cannot launch a warpgroup MMA with a single warp; it is a collaborative operation across 4 warps. TMA Multicast requires Threadblock Clusters ;  you can only multicast a TMA load to CTAs that are part of the same hardware cluster.</p>
 

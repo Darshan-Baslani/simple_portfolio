@@ -37,6 +37,26 @@ renderer.code = function({ text, lang, escaped }) {
     return originalCode({ text, lang, escaped });
 };
 
+const headingCounts = new Map();
+
+function slugifyHeading(text) {
+    return text
+        .toLowerCase()
+        .replace(/;\s+/g, ' ')
+        .replace(/[^a-z0-9\-\s]/g, '')
+        .replace(/ /g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+renderer.heading = function({ tokens, depth }) {
+    const text = this.parser.parseInline(tokens, this.parser.textRenderer);
+    const baseSlug = slugifyHeading(text);
+    const count = headingCounts.get(baseSlug) || 0;
+    headingCounts.set(baseSlug, count + 1);
+    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+    return `<h${depth} id="${slug}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
+};
+
 marked.setOptions({ gfm: true, breaks: false, renderer });
 
 // Helper: format date for display
@@ -732,6 +752,7 @@ for (const post of manifest.posts) {
     // Pre-process: protect math expressions from markdown parser
     const { md: processedMd, mathBlocks } = preprocessMath(mdText);
 
+    headingCounts.clear();
     let renderedHtml = marked.parse(processedMd);
 
     // Post-process: restore math expressions and convert GitHub alerts

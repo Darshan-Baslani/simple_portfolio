@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/03_the_naive_copy/"
   },
   "keywords": "CUDA",
-  "wordCount": 1772,
+  "wordCount": 1781,
   "timeRequired": "PT9M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>The Naive Copy ;  Scalar vs. Vectorized Memory Movement</h1>
+<h1 id="the-naive-copy--scalar-vs-vectorized-memory-movement">The Naive Copy ;  Scalar vs. Vectorized Memory Movement</h1>
 <p><strong>Difficulty:</strong> Beginner
 <strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, <a href="https://www.dcbaslani.xyz/blog.html?post=02_the_art_of_slicing">Tutorial 02: The Art of Slicing</a>, basic CUDA memory model</p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>You&#39;ve partitioned your matrix beautifully. Every thread knows which elements it owns. Now it needs to actually <em>move</em> data ;  from global memory to shared memory, or from shared memory to registers. The simplest approach: a <code>for</code> loop that copies one <code>float</code> at a time.</p>
 <pre><code class="language-cpp">// The &quot;obvious&quot; way ;  one element per iteration
 for (int i = 0; i &lt; N; ++i) {
@@ -236,8 +236,8 @@ for (int i = 0; i &lt; N; ++i) {
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, vectorized copies are the minimum bar. The real prize is <code>cp.async</code> and TMA (Tutorials 04 and 08), which bypass registers entirely. But even those advanced paths require the same alignment and contiguity fundamentals covered here.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
-<h3>Scalar Copy: One Element at a Time</h3>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
+<h3 id="scalar-copy-one-element-at-a-time">Scalar Copy: One Element at a Time</h3>
 <pre><code class="language-text">Global Memory (128-bit bus):
 ┌─────────────────────────────────────┐
 │  float₀  float₁  float₂  float₃   │  ← 128 bits fetched from DRAM
@@ -253,7 +253,7 @@ for (int i = 0; i &lt; N; ++i) {
    LDG.32 → float₃
    = 4 instructions, 4 transactions
 </code></pre>
-<h3>Vectorized Copy: Four Elements at Once</h3>
+<h3 id="vectorized-copy-four-elements-at-once">Vectorized Copy: Four Elements at Once</h3>
 <pre><code class="language-text">Global Memory (128-bit bus):
 ┌─────────────────────────────────────┐
 │  float₀  float₁  float₂  float₃   │  ← 128 bits fetched from DRAM
@@ -265,7 +265,7 @@ for (int i = 0; i &lt; N; ++i) {
    LDG.128 → float₀, float₁, float₂, float₃
    = 1 instruction, 1 transaction
 </code></pre>
-<h3>The Two Requirements for Vectorization</h3>
+<h3 id="the-two-requirements-for-vectorization">The Two Requirements for Vectorization</h3>
 <pre><code class="language-text">Requirement 1: CONTIGUITY (stride-1)
    ✅ Contiguous:  [ f₀ | f₁ | f₂ | f₃ ]   stride = 1
                       +1   +1   +1
@@ -280,7 +280,7 @@ Requirement 2: ALIGNMENT (address divisible by vector width)
 <blockquote>
 <p><strong>The Dolly Rule:</strong> Think of vectorization like moving boxes on a loading dock. <code>UniversalCopy</code> hand-carries one box at a time ;  always works, always slow. <code>AutoVectorizingCopy</code> is the smart worker who checks: &quot;Are these boxes side-by-side (contiguous) and does the stack start at a dolly-sized slot (aligned)?&quot; If yes, load them all onto the dolly in one trip. If not, fall back to one-at-a-time.</p>
 </blockquote>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>A CUDA kernel that copies a tile from global to shared memory using CuTe&#39;s <code>copy()</code>, then measures effective bandwidth for both scalar and vectorized paths.</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/algorithm/copy.hpp&gt;
@@ -386,7 +386,7 @@ AutoVectorizingCopy   (vector, 128-bit)     310.45 GB/s   ( 0.422 ms for 1000 it
 AutoVectorizingCopy   (vector,  64-bit)     205.30 GB/s   ( 0.638 ms for 1000 iters)
 </code></pre>
 <p>The vectorized 128-bit copy is roughly <strong>3–4× faster</strong> than scalar. The 64-bit variant lands in between.</p>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>auto g_tensor = make_tensor(make_gmem_ptr(g_ptr), gmem_layout);</code></strong></p>
 <ul>
 <li><code>make_gmem_ptr(g_ptr)</code> wraps the raw pointer and tags it as global memory. CuTe uses this tag to select the right load instruction (<code>LDG</code> vs. <code>LDS</code> vs. register move). Without it, CuTe can&#39;t distinguish memory spaces.</li>
@@ -426,7 +426,7 @@ AutoVectorizingCopy   (vector,  64-bit)     205.30 GB/s   ( 0.638 ms for 1000 it
 </li>
 <li><strong>Takeaway:</strong> The default <code>copy(src, dst)</code> already tries to vectorize. You don&#39;t need to pass <code>AutoVectorizingCopy</code> explicitly unless you want to control <code>MaxVecBits</code>.</li>
 </ul>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> Copying data is like <strong>moving boxes on a loading dock</strong>. <code>UniversalCopy</code> hand-carries one box at a time ;  it always works, but it&#39;s slow. <code>AutoVectorizingCopy</code> is the smart worker who checks: &quot;Are these boxes side-by-side on the shelf (contiguous, stride-1)? Does the stack start at a slot that fits my dolly (aligned to 128-bit boundary)?&quot; If yes, load them onto the dolly and move 4 boxes in one trip. If not, fall back to hand-carrying.</p>
 <p><strong>The Three Laws of Auto-Vectorization:</strong></p>
 <ol>

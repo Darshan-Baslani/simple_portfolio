@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/05_swizzling/"
   },
   "keywords": "CUDA",
-  "wordCount": 3170,
+  "wordCount": 3181,
   "timeRequired": "PT16M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>Swizzling ;  Avoiding Shared Memory Bank Conflicts</h1>
+<h1 id="swizzling--avoiding-shared-memory-bank-conflicts">Swizzling ;  Avoiding Shared Memory Bank Conflicts</h1>
 <p><strong>Difficulty:</strong> Intermediate
 <strong>Prerequisites:</strong> <a href="/blog/01_hello_layout/">Tutorial 01: Hello, Layout!</a>, <a href="/blog/04_the_parallel_copy/">Tutorial 04: The Parallel Copy</a>, basic shared memory understanding</p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 04&#39;s <code>TiledCopy</code> moves data from global to shared memory ;  32 threads, 128-bit vectorized stores, zero coordination issues. Beautiful.</p>
 <p>But there&#39;s a hidden trap. Shared memory isn&#39;t one big flat buffer. It&#39;s split into <strong>32 banks</strong>, each serving one 4-byte access per cycle. When two threads in the same warp access the <em>same bank</em> at the <em>same time</em> (different addresses within that bank), the hardware serializes their accesses. This is a <strong>bank conflict</strong>. An N-way conflict means N sequential accesses instead of 1 ;  your shared memory bandwidth drops to 1/N.</p>
 <p>Here&#39;s the catch: bank conflicts depend on the <strong>access pattern</strong>, not just the data layout. Your <code>TiledCopy</code> might <em>write</em> to smem conflict-free (column-first, nicely spread across banks). But the next stage ;  an MMA reading that data row-first ;  might collide on every access.</p>
@@ -230,8 +230,8 @@
 <blockquote>
 <p><strong>B200 Note:</strong> On Blackwell (SM100), all supported MMA swizzle modes ;  including no-swizzle (8×16B interleaved) ;  are <strong>bank-conflict-free on both the MMA read side and the TMA write side</strong>. Swizzling still matters, though: using no-swizzle or smaller swizzle modes can reduce <strong>TMA achievable throughput</strong> when populating shared memory. So on Hopper/Blackwell the swizzle is primarily about maximizing TMA write bandwidth, not avoiding MMA read conflicts.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
-<h3>How Shared Memory Banks Work</h3>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
+<h3 id="how-shared-memory-banks-work">How Shared Memory Banks Work</h3>
 <p>Shared memory is divided into 32 banks, each 4 bytes wide. Bank assignment is cyclic:</p>
 <pre><code class="language-text">Float index:    0    1    2    3    4   ...   31   32   33  ...
 Bank:          B00  B01  B02  B03  B04 ...  B31  B00  B01  ...
@@ -243,7 +243,7 @@ Bank:          B00  B01  B02  B03  B04 ...  B31  B00  B01  ...
 <li>Each thread accesses a <em>different</em> bank → <strong>1 cycle</strong> (full parallelism)</li>
 <li>K threads access the <em>same</em> bank → <strong>K cycles</strong> (serialized)</li>
 </ul>
-<h3>The Problem: Column-Major + Row Access = Conflict</h3>
+<h3 id="the-problem-column-major--row-access--conflict">The Problem: Column-Major + Row Access = Conflict</h3>
 <p>Consider an 8×8 tile stored column-major in shared memory (stride = <code>(1, 8)</code>):</p>
 <pre><code class="language-text">WITHOUT Swizzle ;  Bank map for 8×8 column-major (1,8):
 
@@ -263,7 +263,7 @@ r7     B07   B15   B23   B31   B07   B15   B23   B31
 <blockquote>
 <p>With larger strides the problem gets worse. A stride of 32 maps <em>every column in the same row</em> to the same bank ;  an 8-way conflict for 8 columns. A stride of 128? Still hits the same bank pattern, just at a bigger scale.</p>
 </blockquote>
-<h3>The Fix: Swizzle Breaks the Pattern</h3>
+<h3 id="the-fix-swizzle-breaks-the-pattern">The Fix: Swizzle Breaks the Pattern</h3>
 <p><code>Swizzle&lt;3, 2, 3&gt;</code> XORs high address bits into low address bits, scrambling the bank assignment so no two columns in the same row share a bank:</p>
 <pre><code class="language-text">WITH Swizzle&lt;3,2,3&gt; ;  Bank map for the same 8×8 tile:
 
@@ -281,7 +281,7 @@ r7     B07   B15   B23   B31   B03   B11   B19   B27
 Read across row 4: banks 4,12,20,28,<strong>0</strong>,8,16,24 ;  <strong>all 8 unique!</strong>
 Read down column 4: banks 4,5,6,7,0,1,2,3 ;  <strong>all 8 unique!</strong></p>
 <p>Zero bank conflicts in any direction. The XOR shifted columns 4–7 by 4 banks relative to columns 0–3, breaking the collision pattern.</p>
-<h3>The Brick Wall Analogy</h3>
+<h3 id="the-brick-wall-analogy">The Brick Wall Analogy</h3>
 <pre><code class="language-text">Without swizzle (joints aligned):        With swizzle (staggered):
 
 ┌────┬────┬────┬────┐                    ┌────┬────┬────┬────┐
@@ -295,7 +295,7 @@ Same banks every row                     Banks shift per row
 → conflicts stack up                     → conflicts eliminated
 </code></pre>
 <p>Swizzle is the GPU equivalent of <strong>staggered brick-laying</strong>. In a brick wall, each row is offset by half a brick so the joints don&#39;t line up ;  this prevents cracks from running straight through. In shared memory, each row&#39;s addresses are XOR-shifted so the bank assignments don&#39;t repeat ;  this prevents bank conflicts from stacking up.</p>
-<h3>How <code>Swizzle&lt;B, M, S&gt;</code> Works</h3>
+<h3 id="how-swizzleb-m-s-works">How <code>Swizzle&lt;B, M, S&gt;</code> Works</h3>
 <p>The swizzle modifies a flat address by XOR-ing two groups of bits:</p>
 <pre><code class="language-text">Address bit layout for Swizzle&lt;3, 2, 3&gt;:
 
@@ -337,7 +337,7 @@ Same banks every row                     Banks shift per row
 </tr>
 </tbody></table>
 <p>The critical parameter is <strong>M</strong>: it controls the granularity of the swizzle. Because bits <code>[0:M)</code> are untouched, blocks of 2^M consecutive elements remain contiguous after swizzling. With M=2, blocks of 4 floats (= 128 bits) are preserved ;  exactly what <code>LDG.128</code> / <code>STS.128</code> needs.</p>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>A bank conflict visualizer that prints the bank assignment map with and without swizzle, followed by a <code>TiledCopy</code> demonstrating that the swizzle is transparent to the copy.</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 #include &lt;cute/swizzle.hpp&gt;
@@ -514,7 +514,7 @@ Shared memory (logical view through swizzled layout):
   row 7:     7    15    23    31    39    47    55    63
 </code></pre>
 <p>The data is logically correct ;  <code>s_tensor(m, n)</code> returns the right value even though the physical addresses in shared memory have been scrambled. The swizzle is completely transparent to the reader: you access <code>(row, col)</code> the same way you always did, and CuTe routes to the swizzled address behind the scenes.</p>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>auto plain = Layout&lt;Shape&lt;_8, _8&gt;, Stride&lt;_1, _8&gt;&gt;{};</code></strong></p>
 <p>The unswizzled column-major layout. <code>plain(m, n) = m * 1 + n * 8</code>. This is the address formula from Tutorial 01 ;  the same <code>address = coord · stride</code> dot product. The bank for element <code>(m, n)</code> is <code>(m + 8n) % 32</code>.</p>
 <p><strong>Line: <code>auto swizzled = composition(Swizzle&lt;3, 2, 3&gt;{}, plain);</code></strong></p>
@@ -545,7 +545,7 @@ Shared memory (logical view through swizzled layout):
 <p>The <code>TiledCopy</code> doesn&#39;t know about the swizzle ;  and doesn&#39;t need to. It partitions <code>s_tensor</code> based on its layout (which now includes the swizzle), and the <code>copy()</code> call stores through the swizzled addresses. Each thread&#39;s 2-float store still lands on contiguous addresses (because M=2 preserves 4-element contiguity), so vectorization is unaffected.</p>
 <p><strong>Line: <code>s_tensor(m, n)</code> in the print loop</strong></p>
 <p>Reading back through the swizzled layout is also transparent. <code>s_tensor(m, n)</code> computes the swizzled address, reads from that location, and returns the correct value. The logical view is identical to the plain layout ;  the scrambling only affects the physical address.</p>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> Swizzle is <strong>staggered brick-laying</strong> for shared memory. In a brick wall, each row is offset so joints don&#39;t line up vertically ;  this prevents cracks from running straight through. In shared memory, each row&#39;s addresses are XOR-shifted so bank assignments don&#39;t repeat across columns ;  this prevents bank conflicts from stacking up. The <code>composition</code> call is the mortar that binds the swizzle to your layout: one line, and every access goes through the staggered pattern automatically.</p>
 <p><strong>Choosing Swizzle Parameters:</strong></p>
 <table>

@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/02_the_art_of_slicing/"
   },
   "keywords": "CUDA",
-  "wordCount": 1505,
+  "wordCount": 1513,
   "timeRequired": "PT8M"
 }
     </script>
@@ -219,10 +219,10 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>The Art of Slicing ;  Partitioning Data Across Blocks and Threads</h1>
+<h1 id="the-art-of-slicing--partitioning-data-across-blocks-and-threads">The Art of Slicing ;  Partitioning Data Across Blocks and Threads</h1>
 <p><strong>Difficulty:</strong> Beginner
 <strong>Prerequisites:</strong> <a href="https://www.dcbaslani.xyz/blog.html?post=01_hello_layout">Tutorial 01: Hello, Layout!</a>, CUDA thread blocks (<code>blockIdx</code>, <code>threadIdx</code>)</p>
-<h2>1. The Problem (The &quot;Why&quot;)</h2>
+<h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>You have a big matrix ;  say 512×512 ;  sitting in global memory. Your GPU launches a grid of thread blocks, each of which should work on a small tile (e.g., 128×128). Inside each block, 256 threads need to split <em>that</em> tile further so every thread handles its own little piece.</p>
 <p>Without CuTe, you write something like:</p>
 <pre><code class="language-cpp">int row_start = blockIdx.x * TILE_M;
@@ -256,8 +256,8 @@ int thr_col   = threadIdx.x / THR_M;
 <blockquote>
 <p><strong>B200 Note:</strong> When you program the TMA engine on Hopper/Blackwell, you still need <code>local_tile</code> to select <em>which</em> tile the TMA should fetch. The TMA descriptor handles the copy, but you tell it <em>where</em> to point using the exact same tiling logic described here.</p>
 </blockquote>
-<h2>2. The Mental Model (The Visual)</h2>
-<h3>Step 1: The Big Picture ;  Tiling for CTAs</h3>
+<h2 id="2-the-mental-model-the-visual">2. The Mental Model (The Visual)</h2>
+<h3 id="step-1-the-big-picture--tiling-for-ctas">Step 1: The Big Picture ;  Tiling for CTAs</h3>
 <p>Imagine an 8×8 matrix divided into 4×4 tiles. Four thread blocks share the work:</p>
 <pre><code class="language-text">                       Global Matrix (8×8)
          col 0  col 1  col 2  col 3  col 4  col 5  col 6  col 7
@@ -277,7 +277,7 @@ row 7  │                           │                           │
   → extracts one 4×4 tile for each block
 </code></pre>
 <p><code>local_tile</code> applies a <strong>tiler</strong> (here <code>Shape&lt;4,4&gt;</code>) to produce tiles, then uses the block coordinate to pick the right one. Under the hood it calls <code>zipped_divide</code>, which reshapes the matrix into <code>((Tile), (Rest))</code> ;  tile elements in the first mode, tile indices in the second ;  then slices the rest-mode with your coordinate.</p>
-<h3>Step 2: Inside a Tile ;  Partitioning for Threads</h3>
+<h3 id="step-2-inside-a-tile--partitioning-for-threads">Step 2: Inside a Tile ;  Partitioning for Threads</h3>
 <p>Now zoom into Block (0,0)&#39;s 4×4 tile. We have 4 threads arranged as a 2×2 layout. Each thread gets a 2×2 chunk:</p>
 <pre><code class="language-text">            Block (0,0)&#39;s Tile (4×4)
 
@@ -301,7 +301,7 @@ row 3  │  T2      T2     │  T3      T3     │
 <blockquote>
 <p><strong>Key Insight:</strong> <code>local_tile</code> slices the <strong>rest</strong> (picks which tile). <code>local_partition</code> slices the <strong>tile</strong> (picks which thread&#39;s elements). They are two sides of the same <code>zipped_divide</code> coin.</p>
 </blockquote>
-<h2>3. The Solution (The Code)</h2>
+<h2 id="3-the-solution-the-code">3. The Solution (The Code)</h2>
 <p>A CUDA kernel that tiles a matrix across blocks, partitions each tile across threads, and prints what each agent owns.</p>
 <pre><code class="language-cpp">#include &lt;cute/tensor.hpp&gt;
 
@@ -379,7 +379,7 @@ int main()
 Thread 0 owns elements: 0 1 8 9
 </code></pre>
 <p>Block (0,0) gets the top-left 4×4 tile (addresses 0–3 down column 0, 8–11 down column 1, etc. ;  column-major). Thread 0 gets the top-left 2×2 corner of that tile.</p>
-<h2>4. Step-by-Step Explanation</h2>
+<h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>auto matrix = make_counting_tensor(make_layout(shape_mn));</code></strong></p>
 <ul>
 <li><code>make_counting_tensor</code> creates a &quot;virtual&quot; tensor where the value at each coordinate equals its flat index. No actual memory ;  it&#39;s a trick for visualizing the Layout&#39;s mapping. In a real kernel, replace this with <code>make_tensor(make_gmem_ptr(ptr), shape, stride)</code>.</li>
@@ -410,7 +410,7 @@ Thread 0 owns elements: 0 1 8 9
 <ul>
 <li><code>cosize(layout)</code> returns the size of the layout&#39;s codomain ;  the number of unique addresses needed. Use it to allocate shared memory: <code>__shared__ float smem[cosize_v&lt;SmemLayout&gt;];</code>.</li>
 </ul>
-<h2>5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
+<h2 id="5-engineers-notebook-latent-space-notes">5. Engineer&#39;s Notebook (Latent Space Notes)</h2>
 <p><strong>Analogy:</strong> Think of partitioning as <strong>dealing cards at a poker table</strong>:</p>
 <ol>
 <li><strong><code>local_tile</code></strong> = The casino floor manager assigns a <em>table</em> (tile) to each <em>dealer</em> (CTA). &quot;Table 0, you get the top-left quarter of the deck.&quot;</li>

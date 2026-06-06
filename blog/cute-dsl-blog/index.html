@@ -57,7 +57,7 @@
     "@id": "https://darshanbaslani.com/blog/cute-dsl-blog/"
   },
   "keywords": "CUDA",
-  "wordCount": 1618,
+  "wordCount": 1631,
   "timeRequired": "PT9M"
 }
     </script>
@@ -219,16 +219,16 @@
                 </div>
             </div>
             <div id="blog-content" class="blog-content" itemprop="articleBody">
-<h1>Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn&#39;t Even Cry</h1>
+<h1 id="cute-dsl-i-wrote-a-cuda-kernel-in-python-and-my-gpu-didnt-even-cry">Cute-DSL: I Wrote a CUDA Kernel in Python and My GPU Didn&#39;t Even Cry</h1>
 <p>Welcome to the ultimate guide to <code>cute-dsl</code>! If you&#39;ve tinkered with CUDA programming and are curious about CUTLASS&#39;s CuTe but felt overwhelmed by the complex C++ templates, <code>cute-dsl</code> is your new best friend. It brings the power of CuTe&#39;s concepts; like Layouts, Tilers, and vectorized memory operations; straight into a familiar, Pythonic interface.</p>
 <p>In this blog, we&#39;ll dive into the basics, starting with simple APIs, building intuition around memory layouts with ASCII diagrams, and graduating to vectorized kernels.</p>
-<h2>The Essentials: <code>cute.kernel</code> and <code>cute.jit</code></h2>
+<h2 id="the-essentials-cutekernel-and-cutejit">The Essentials: <code>cute.kernel</code> and <code>cute.jit</code></h2>
 <p>At the core of <code>cute-dsl</code> are two crucial decorators:</p>
 <ul>
 <li><code>@cute.kernel</code>: This marks a Python function as a device kernel, meaning it will run natively on the GPU. It behaves similarly to PyTorch&#39;s Triton <code>@triton.jit</code> or Numba&#39;s <code>@cuda.jit</code>.</li>
 <li><code>@cute.jit</code>: This marks a host function that will compile and launch your device kernels. Think of it as the bridge between your standard Python code and your GPU parallel executions.</li>
 </ul>
-<h3>A Gentle Start: Hello, GPU</h3>
+<h3 id="a-gentle-start-hello-gpu">A Gentle Start: Hello, GPU</h3>
 <p>Let&#39;s look at the absolute simplest program you can write:</p>
 <pre><code class="language-python">import cutlass
 import cutlass.cute as cute
@@ -250,7 +250,7 @@ if __name__ == &quot;__main__&quot;:
     compiled()
 </code></pre>
 <p>When you define <code>hello_kernel</code>, it gets compiled into PTX code behind the scenes. Inside it, we use <code>cute.arch.thread_idx()</code> ;  which returns <code>(threadIdx.x, threadIdx.y, threadIdx.z)</code>, just like in normal CUDA. We then launch it using standard <code>(grid, block)</code> dimensions inside a <code>@cute.jit</code>-compiled host function. Beautifully simple!</p>
-<h2>Demystifying Layouts</h2>
+<h2 id="demystifying-layouts">Demystifying Layouts</h2>
 <p>A <strong>Layout</strong> in <code>cute</code> is the fundamental building block of memory access. It dictates how a logical multi-dimensional coordinate maps to a 1D flat memory index.</p>
 <p>A Layout is parameterized by two things: <strong>Shape</strong> and <strong>Stride</strong>.</p>
 <p>Let&#39;s imagine an 8x8 matrix in <strong>Column-Major</strong> layout: <code>shape=(8, 8)</code> and <code>stride=(1, 8)</code>.</p>
@@ -266,7 +266,7 @@ if __name__ == &quot;__main__&quot;:
 </code></pre>
 <p>In <strong>Row-Major</strong> layout, the stride would be <code>(8, 1)</code> ;  meaning moving to the <em>next row</em> jumps by 8 in flat memory, while moving to the <em>next column</em> steps by just 1. So elements within the same row are contiguous in memory, which is the opposite of column-major.</p>
 <p>Layouts in <code>cute</code> can also be <strong>hierarchically nested</strong>. For example, a shape of <code>(2, (2, 4))</code> with stride <code>(1, (2, 4))</code> describes a 2-element outer dimension where each element contains a nested 2×4 sub-layout. This nesting lets you mathematically model complex memory access patterns like blocked or swizzled layouts ;  essential for high-performance GPU kernels.</p>
-<h2>Logical Divide vs Zipped Divide</h2>
+<h2 id="logical-divide-vs-zipped-divide">Logical Divide vs Zipped Divide</h2>
 <p>When we want to transfer data between different memory hierarchies (like Global Memory -&gt; Shared Memory -&gt; Registers), we often do so in small parallelized blocks called <strong>Tiles</strong>. </p>
 <p>Let&#39;s take our 8x8 matrix layout <code>L = (8, 8)</code> and divide it using a <strong>Tiler</strong> of size <code>(2, 4)</code>. A tiler dictates the shape of the blocks we want to chop our layout into.</p>
 <pre><code class="language-python">L = cute.make_layout(shape=(8, 8), stride=(1, 8))
@@ -275,7 +275,7 @@ tiler = (2, 4)
 L_logical = cute.logical_divide(L, tiler)
 L_zipped = cute.zipped_divide(L, tiler)
 </code></pre>
-<h3>Logical Divide</h3>
+<h3 id="logical-divide">Logical Divide</h3>
 <p>A <strong>Logical Divide</strong> splits each mode independently into <code>(tile_size, num_tiles)</code>:</p>
 <ul>
 <li>Rows (size 8) ÷ Tiler Row (2) → <code>(2, 4)</code> meaning &quot;2 rows per tile, 4 tile-rows&quot;</li>
@@ -293,7 +293,7 @@ Indexing requires specifying all 4 sub-dimensions:
 The row and column modes remain separate ;  they are NOT grouped
 by &quot;tile&quot; vs &quot;grid&quot;. This makes it awkward to grab a full 2x4 tile.
 </code></pre>
-<h3>Zipped Divide</h3>
+<h3 id="zipped-divide">Zipped Divide</h3>
 <p>A <strong>Zipped Divide</strong> first performs a logical divide, then <em>re-groups</em> the results: it bundles all the &quot;within-tile&quot; dimensions into Mode 0 and all the &quot;which-tile&quot; dimensions into Mode 1.</p>
 <ul>
 <li><strong>Mode 0 (Tile)</strong>: <code>(2, 4)</code> ;  the shape of one tile (rows-in-tile, cols-in-tile)</li>
@@ -316,7 +316,7 @@ Mode 0 = One Tile (2, 4):            Mode 1 = Grid of Tiles (4, 2):
                                        +-------+-------+
                                        4×2 grid = 8 tiles total
 </code></pre>
-<h3>Why is Zipped Divide Preferred?</h3>
+<h3 id="why-is-zipped-divide-preferred">Why is Zipped Divide Preferred?</h3>
 <p>Zipped divide gives you a clean two-level hierarchy: <code>(Tile_Coordinate, Grid_Coordinate)</code>.</p>
 <p>When doing vectorized loads or memory copies, you typically want to grab a <em>whole tile</em> at a specific <em>grid position</em>. Compare the two approaches:</p>
 <ul>
@@ -324,7 +324,7 @@ Mode 0 = One Tile (2, 4):            Mode 1 = Grid of Tiles (4, 2):
 <li><strong>Zipped Divide</strong>: The layout already mirrors <code>(Tile, Grid)</code>, so you cleanly index: <code>Data[tile_coord, grid_coord]</code> ;  much simpler!</li>
 </ul>
 <p>This is why <code>zipped_divide</code> is the go-to operation for partitioning data across threads and memory hierarchies in CuTe kernels.</p>
-<h2>Anatomy of the Naive Elementwise Add Kernel</h2>
+<h2 id="anatomy-of-the-naive-elementwise-add-kernel">Anatomy of the Naive Elementwise Add Kernel</h2>
 <p>Let&#39;s see how indexing looks across different paradigms for a simple elementwise <code>C = A + B</code> kernel.</p>
 <pre><code class="language-python">@cute.kernel
 def naive_elementwise_add_kernel(A: cute.Tensor, B: cute.Tensor, C: cute.Tensor):
@@ -340,13 +340,13 @@ def naive_elementwise_add_kernel(A: cute.Tensor, B: cute.Tensor, C: cute.Tensor)
 
     C[mi, ni] = A[mi, ni] + B[mi, ni]
 </code></pre>
-<h3>The Indexing Difference</h3>
+<h3 id="the-indexing-difference">The Indexing Difference</h3>
 <ul>
 <li><strong>PyTorch</strong>: Fully abstracted ;  you simply write <code>C = A + B</code> and PyTorch handles parallelism, memory layout, and iteration internally.</li>
 <li><strong>CUDA</strong>: GPU memory is flat 1D, so you typically work with raw pointers: <code>C[idx] = A[idx] + B[idx]</code>. If you need multi-dimensional indexing, you must manually compute row/column indices from the flat thread index and handle bounds checking yourself.</li>
 <li><strong>cute-dsl</strong>: The best of both worlds! Each thread computes a flat <code>idx</code>, then uses simple arithmetic (<code>idx % n</code> and <code>idx // n</code>) to recover 2D coordinates <code>(mi, ni)</code>. You then index with clean multi-dimensional syntax: <code>A[mi, ni]</code>. Under the hood, CuTe&#39;s Layout algebra automatically translates these logical coordinates to the correct physical memory offset ;  no raw pointer math needed!</li>
 </ul>
-<h2>Graduating to Vectorized Execution</h2>
+<h2 id="graduating-to-vectorized-execution">Graduating to Vectorized Execution</h2>
 <p>GPUs love vectorized operations. Why fetch one float per thread when you can comfortably fetch four? Vectorized pipelines saturate memory bandwidth efficiently.
 To vectorize seamlessly, we systematically reshape our datasets using ;  you guessed it ;  <strong>tilers</strong>!</p>
 <pre><code class="language-python">@cute.jit 
@@ -384,14 +384,14 @@ def vectorized_add_kernel(A, B, C):
 
     C[(None, (mi, ni))] = a_val + b_val
 </code></pre>
-<h3>Breaking down <code>A[(None, (mi, ni))]</code></h3>
+<h3 id="breaking-down-anone-mi-ni">Breaking down <code>A[(None, (mi, ni))]</code></h3>
 <p>This is why we advocated for Zipped Divide earlier! After <code>zipped_divide</code>, <code>A</code> expects coordinates in the format <code>[TileCoord, GridCoord]</code>:</p>
 <ul>
 <li><strong><code>None</code> for TileCoord</strong>: In CuTe DSL, <code>None</code> works like Python&#39;s <code>:</code> slice ;  it means &quot;select everything along this mode.&quot; Since our tile shape is <code>(1, 4)</code>, passing <code>None</code> selects all 4 elements of the tile. This gives us back a small tensor (a 4-element vector) rather than a single scalar.</li>
 <li><strong><code>(mi, ni)</code> for GridCoord</strong>: This pinpoints <em>which</em> tile in the <code>(M, N/4)</code> grid this thread should access.</li>
 <li><strong><code>.load()</code></strong>: This tells the compiler to emit a hardware-level <strong>vectorized memory load</strong> (e.g., <code>ld.global.v4</code>), fetching all 4 elements in a single memory transaction directly into registers ;  far more efficient than 4 separate scalar loads!</li>
 </ul>
-<h3>Conclusion</h3>
+<h3 id="conclusion">Conclusion</h3>
 <p>By leveraging Layouts, divide operations, and tilers, <code>cute-dsl</code> abstracts away the complex C++ template machinery of raw CUTLASS while preserving its performance. You get optimized layout mapping, zero raw pointer math, and vectorized register loading ;  all with syntax that feels like writing everyday PyTorch or NumPy code.</p>
 <p>Time to fire up your GPUs!</p>
 
