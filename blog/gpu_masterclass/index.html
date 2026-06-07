@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/gpu_masterclass/"
   },
   "keywords": "CUDA",
-  "wordCount": 9502,
+  "wordCount": 9512,
   "timeRequired": "PT49M"
 }
     </script>
@@ -156,7 +156,8 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
         .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
@@ -285,7 +286,7 @@
     style D fill:#45b7d1,stroke:#333,color:#fff
     style T fill:#f9f9f9,stroke:#333</pre>
 <p>There are two flavors:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Type</th>
@@ -303,7 +304,7 @@
 <td>LOW (0)</td>
 <td>Supply (1)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <blockquote>
 <p><strong>The key insight</strong>: A transistor is not a mystical device. It&#39;s a water faucet. Gate voltage = handle. Current = water. That&#39;s it.</p>
 </blockquote>
@@ -342,7 +343,7 @@
     style GND fill:#2c3e50,stroke:#333,color:#fff
     style OUT fill:#f1c40f,stroke:#333,color:#000
     style INPUT fill:#3498db,stroke:#333,color:#fff</pre>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Input</th>
@@ -363,7 +364,7 @@
 <td>ON</td>
 <td><strong>0</strong></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="the-nand-gate--4-transistors">The NAND Gate ;  4 Transistors</h3>
 <p>The NAND gate is the <strong>universal gate</strong> ;  you can build ANY logic function from NANDs alone.</p>
 <pre><code>        Vdd
@@ -384,7 +385,7 @@
 PMOS: Parallel (either A=0 OR B=0 → output=1)
 NMOS: Series  (both A=1 AND B=1 → output=0)
 </code></pre>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>A</th>
@@ -412,7 +413,7 @@ NMOS: Series  (both A=1 AND B=1 → output=0)
 <td>1</td>
 <td><strong>0</strong></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <blockquote>
 <p><strong>Why NAND is universal</strong>: <code>NOT(A) = NAND(A,A)</code>. <code>AND(A,B) = NOT(NAND(A,B))</code>. <code>OR(A,B) = NAND(NOT(A), NOT(B))</code>. Every other gate follows. This is why chip designers think in NANDs.</p>
 </blockquote>
@@ -607,7 +608,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
     style CORES0 fill:#533483,stroke:#333,color:#fff
     style TC0 fill:#e74c3c,stroke:#333,color:#fff</pre>
 <h3 id="sm-specs-across-generations">SM Specs Across Generations</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Feature</th>
@@ -673,7 +674,7 @@ int laneId   = threadIdx.x % 32;    // which lane within the warp (0-31)
 <td>32</td>
 <td>32</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <blockquote>
 <p><strong>The golden ratio of GPUs</strong>: 2048 threads / 256 KB registers = 128 bytes (32 registers) per thread at 100% occupancy. Every register you add above 32 reduces your occupancy. This is the <em>fundamental tradeoff</em> of GPU programming.</p>
 </blockquote>
@@ -1224,7 +1225,7 @@ Sparse:   [0.5, 0.3, 0.7, 0.1]  + metadata: [0,2,0,2]
 <h3 id="why-not-just-syncthreads">Why Not Just <code>__syncthreads()</code>?</h3>
 <p><code>__syncthreads()</code> is a <strong>sledgehammer</strong>: it forces ALL threads in a block to reach the same point. It knows nothing about asynchronous operations. It&#39;s block-scoped only.</p>
 <p><strong>mbarrier</strong> is a <strong>scalpel</strong>: it can track async operations (like <code>cp.async</code>), works across CTAs in a cluster, and uses phases for pipelining.</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Feature</th>
@@ -1257,7 +1258,7 @@ Sparse:   [0.5, 0.3, 0.7, 0.1]  + metadata: [0,2,0,2]
 <td>Thread arrival only</td>
 <td>Thread arrival + async byte count</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="the-mbarrier-state-machine">The mbarrier State Machine</h3>
 <pre class="mermaid">stateDiagram-v2
     [*] --> Init: mbarrier.init count=N
@@ -1625,7 +1626,7 @@ Bits 3-0:   Swizzle mode
     style TMEM_B fill:#e74c3c,stroke:#fff,color:#fff
     style TC_B fill:#c0392b,stroke:#333,color:#fff</pre>
 <h3 id="whats-new-in-blackwell">What&#39;s New in Blackwell</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Feature</th>
@@ -1700,7 +1701,7 @@ Bits 3-0:   Swizzle mode
 <td><strong>FP4, MX formats</strong></td>
 <td>New!</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <hr>
 <h2 id="42-tensor-memory-tmem-a-new-address-space">4.2 Tensor Memory (TMEM): A New Address Space</h2>
 <p>This is the single biggest architectural change in Blackwell. <strong>TMEM</strong> is a new, dedicated memory space that lives inside the SM, separate from both registers and shared memory.</p>
@@ -1776,7 +1777,7 @@ tcgen05.mma ... [tmem_addr], ...;  // Accumulator in TMEM
 <pre><code>tcgen05.mma.cta_group::{1,2}.kind [d_tmem], a_desc, b_desc, idesc, enable;
 </code></pre>
 <p>Let&#39;s break down every operand:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Operand</th>
@@ -1811,7 +1812,7 @@ tcgen05.mma ... [tmem_addr], ...;  // Accumulator in TMEM
 <td><code>enable</code></td>
 <td>Predicate ;  allows conditional execution</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="ptx-example-tcgen05mma">PTX Example: tcgen05.mma</h3>
 <pre><code>// =============================================
 // Blackwell tcgen05.mma: FP16 Matrix Multiply
@@ -1942,7 +1943,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
 </ul>
 <p><strong>Result</strong>: 2x the throughput of FP8, with minimal accuracy loss.</p>
 <h3 id="mx-format-variants-on-blackwell">MX Format Variants on Blackwell</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Format</th>
@@ -1973,7 +1974,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
 <td>32</td>
 <td>Max throughput</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <hr>
 <h2 id="45-putting-it-all-together-a-blackwell-gemm-kernel">4.5 Putting It All Together: A Blackwell GEMM Kernel</h2>
 <p>Here&#39;s the complete data flow for a high-performance GEMM on Blackwell:</p>
@@ -2196,7 +2197,7 @@ __global__ void blackwell_gemm(
     style H fill:#fdcb6e,stroke:#333,color:#000
     style B fill:#e17055,stroke:#333,color:#fff</pre>
 <h3 id="peak-performance-across-generations">Peak Performance Across Generations</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Generation</th>
@@ -2234,7 +2235,7 @@ __global__ void blackwell_gemm(
 <td>~9,000 (sparse)</td>
 <td>8.0</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="the-memory-wall-compute-grows-faster-than-memory">The Memory Wall: Compute Grows Faster Than Memory</h3>
 <pre class="mermaid">graph TD
     COMPUTE["Compute Growth:<br/>~4x per generation<br/>V100 to B200: ~72x"] --> GAP
@@ -2330,7 +2331,7 @@ bar.sync     0;                  // __syncthreads()
 <hr>
 <h1 id="appendix-b--occupancy-calculator-cheat-sheet">Appendix B ;  Occupancy Calculator Cheat Sheet</h1>
 <h3 id="quick-reference-table-sm90--hopper">Quick Reference Table (SM90 ;  Hopper)</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Regs/Thread</th>
@@ -2396,7 +2397,7 @@ bar.sync     0;                  // __syncthreads()
 <td>12.5%</td>
 <td>Maximum registers allowed</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="formulas">Formulas</h3>
 <p><div class="math-display">$$\text{Warps from registers} = \left\lfloor \frac{65536}{\text{regs/thread} \times 32} \right\rfloor$$</div></p>
 <p><div class="math-display">$$\text{Warps from shared mem} = \min\left( \left\lfloor \frac{\text{max smem per SM}}{\text{smem per block}} \right\rfloor \times \frac{\text{threads per block}}{32}, \; 64 \right)$$</div></p>

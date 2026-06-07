@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/04_the_parallel_copy/"
   },
   "keywords": "CUDA",
-  "wordCount": 3030,
+  "wordCount": 3034,
   "timeRequired": "PT16M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -234,7 +235,7 @@ copy(AutoVectorizingCopy{}, thr_g, thr_s);
 </code></pre>
 <p>This works ;  but <em>you</em> have to manually choose a thread layout, make sure it divides the tile evenly, and hope the resulting per-thread partition is contiguous enough for vectorization. Change the tile size? Redo the math. Transpose the layout? Redo it again. Switch from <code>LDG</code> to <code>cp.async</code>? Rewrite the whole thing.</p>
 <p>CuTe&#39;s <code>TiledCopy</code> bundles all three decisions into one declarative object:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Piece</th>
@@ -257,7 +258,7 @@ copy(AutoVectorizingCopy{}, thr_g, thr_s);
 <td align="left">How many values each thread handles per trip</td>
 <td align="left">New</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>You declare these once. CuTe generates the partitioning, the vectorization, and the thread-to-element mapping automatically.</p>
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, <code>TiledCopy</code> is also the container for TMA and <code>cp.async</code> atoms. The <code>thr_layout</code>/<code>val_layout</code> mechanism is identical ;  only the <code>Copy_Atom</code> changes. Master this pattern now and TMA (Tutorial 08) becomes a one-line swap.</p>
@@ -549,7 +550,7 @@ Shared memory after TiledCopy (column-major, showing row by row):
 <p><strong>Analogy:</strong> Tutorial 03 was about one mover and their dolly. <code>TiledCopy</code> is the <strong>shift supervisor&#39;s clipboard</strong> ;  a plan that assigns every mover to a grid position on the warehouse floor. The <code>Copy_Atom</code> says what tool each mover uses (the dolly). The <code>thr_layout</code> is where they stand. The <code>val_layout</code> is how many extra trips each mover makes. Three pieces, one plan, zero overlap.</p>
 <p><strong>The <code>val_layout</code> and Vectorization:</strong></p>
 <p>The atom&#39;s vector direction must align with the contiguous memory dimension, or you lose vectorization:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Memory Layout</th>
@@ -572,10 +573,10 @@ Shared memory after TiledCopy (column-major, showing row by row):
 <td align="left"><code>UniversalCopy&lt;float&gt;</code></td>
 <td align="left">Scalar fallback ;  always works, always slow</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>If the atom&#39;s 4-element chunk lands on non-contiguous addresses, the hardware can&#39;t coalesce them and you&#39;re back to scalar speed. Always check: <em>&quot;which dimension has stride 1?&quot;</em> ;  and point the atom&#39;s vector width in that direction.</p>
 <p><strong>The <code>TiledCopy</code> API Cheat-Sheet:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">API Call</th>
@@ -602,9 +603,9 @@ Shared memory after TiledCopy (column-major, showing row by row):
 <td align="left"><code>copy(tiled_copy, thr_src, thr_dst)</code></td>
 <td align="left">Execute the copy (loops over repetitions)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong><code>TiledCopy</code> vs. Manual <code>local_partition</code> + <code>copy</code>:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left"></th>
@@ -632,7 +633,7 @@ Shared memory after TiledCopy (column-major, showing row by row):
 <td align="left">Manual loop</td>
 <td align="left">Automatic</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong>Hardware Note:</strong> For global memory loads, the GPU coalesces requests from threads in the same warp that hit the same 128-byte cache line. To maximize coalescing, threads with adjacent IDs should access adjacent memory addresses. For column-major data, spread threads along mode-0 (rows) first ;  which is what <code>thr_layout = (T_rows, T_cols)</code> in column-major order does naturally: threads 0, 1, 2, 3 hit rows 0–3 of the same column, which are adjacent in memory.</p>
 <blockquote>
 <p><strong>Gotcha ;  partition shape surprise:</strong> <code>partition_S</code> and <code>partition_D</code> return tensors shaped <code>(ValuesPerAtom, Repetitions...)</code>, NOT <code>(M, N)</code>. The first mode is the &quot;hand&quot; for a single atom invocation; the remaining modes are how many times the atom repeats to cover the tile. If you <code>print()</code> the partition and see an unexpected number of modes, it&#39;s because your tile is bigger than the <code>TiledCopy</code>&#39;s single-round coverage. This is normal ;  <code>copy()</code> iterates over the repetitions automatically.</p>

@@ -198,6 +198,10 @@ function processAlerts(html) {
     return html;
 }
 
+function wrapTables(html) {
+    return html.replace(/<table>([\s\S]*?)<\/table>/g, '<div class="table-scroll"><table>$1</table></div>');
+}
+
 // ============================================================
 // 1. Generate blog/index.html (The main blogs listing page)
 // ============================================================
@@ -621,7 +625,8 @@ ${postJsonLd}
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
         .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
@@ -801,6 +806,7 @@ for (const post of manifest.posts) {
     // Post-process: restore math expressions and convert GitHub alerts
     renderedHtml = restoreMath(renderedHtml, mathBlocks);
     renderedHtml = processAlerts(renderedHtml);
+    renderedHtml = wrapTables(renderedHtml);
 
     const readMin = readingTime(mdText);
 

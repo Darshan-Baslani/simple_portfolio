@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/qwen_3.5/"
   },
   "keywords": "Triton",
-  "wordCount": 3557,
+  "wordCount": 3567,
   "timeRequired": "PT18M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -249,7 +250,7 @@ Layer 31: Full Attention (SDPA)
 <p>Because <strong>75% of the decoder layers</strong> are GDN layers, optimizing them is critical; they dominate both prefill and decode latency.</p>
 <p>The goal here wasn&#39;t to build a production serving system, but to understand what happens between the CUDA cores and HBM when you run text generation, and to see how much performance we can recover through targeted Triton kernels.</p>
 <h3 id="code-components">Code Components</h3>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Component</th>
@@ -280,7 +281,7 @@ Layer 31: Full Attention (SDPA)
 <td><a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/vllm_bench.py">modal/vllm_bench.py</a></td>
 <td>Benchmarking script comparing our performance against vLLM</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <hr>
 <h2 id="hardware-setup">Hardware Setup</h2>
 <p>I developed local tests on a GTX 1650 to iterate fast, and ran final benchmarks on an NVIDIA B200 via Modal.</p>
@@ -298,7 +299,7 @@ Layer 31: Full Attention (SDPA)
     end
 
     DEV -->|"modal run"| PERF</pre>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Platform</th>
@@ -326,7 +327,7 @@ Layer 31: Full Attention (SDPA)
 <td>Fast functional testing</td>
 <td>Throughput and profiling</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="profiling-setup">Profiling Setup</h3>
 <p>I captured profiler traces on the B200 using PyTorch&#39;s built-in <code>torch.profiler</code> with CPU + CUDA activity recording and memory tracking. The profiling script (<a href="https://github.com/Darshan-Baslani/qwen3.5-optimized/blob/main/modal/inference-torch-profiler.py">inference-torch-profiler.py</a>) profiles the prefill pass and a few decode steps, exporting Chrome traces for analysis.</p>
 <p>I ran profiles at three main development stages:</p>
@@ -334,7 +335,7 @@ Layer 31: Full Attention (SDPA)
 <p class="gh-alert-title"><span class="gh-alert-icon">⚠️</span> Warning</p>
 <p><strong>Profiling Overhead:</strong> The absolute times in the traces are much slower than actual inference because the profiler (with memory tracking and <code>CUDA_LAUNCH_BLOCKING=1</code>) adds significant overhead. The throughput numbers below reflect actual, unprofiled runs, while the trace times show the relative gains under profiling conditions.</p>
 </div>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Trace</th>
@@ -361,7 +362,7 @@ Layer 31: Full Attention (SDPA)
 <td>6.51 s</td>
 <td>~83 tok/s</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <hr>
 <h2 id="finding-the-bottlenecks">Finding the Bottlenecks</h2>
 <h3 id="the-initial-trace">The Initial Trace</h3>
@@ -460,7 +461,7 @@ def _fused_zero_centered_rmsnorm(
         NORM_F --> WEIGHT_F["Apply (1 + W)"]
         WEIGHT_F --> WRITE["Write Y, S to HBM"]
     end</pre>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Metric</th>
@@ -488,7 +489,7 @@ def _fused_zero_centered_rmsnorm(
 <td>;</td>
 <td><strong>320 per step</strong></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="restructuring-the-decoder-layer">Restructuring the Decoder Layer</h3>
 <p>We also need to map the standard HuggingFace weights into our fused model format during loading (duplicating <code>input_layernorm.weight</code> into both a <code>standard</code> and <code>fused</code> slot).</p>
 <pre><code class="language-python">class Qwen3_5DecoderLayer(nn.Module):
@@ -512,7 +513,7 @@ def _fused_zero_centered_rmsnorm(
 </code></pre>
 <h3 id="performance-gains-stage-1">Performance Gains (Stage 1)</h3>
 <p><img src="/blog/images/fused_rms_norm.png" alt="Profiler trace after applying fused RMSNorm, showing reduced kernel launch density"></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Implementation</th>
@@ -527,7 +528,7 @@ def _fused_zero_centered_rmsnorm(
 <td>+ Fused Triton RMSNorm</td>
 <td><strong>~50 tok/s</strong> (3.1x speedup)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>Fusing RMSNorm and residual addition got us to ~50 tokens/sec. However, the profiler showed we were still heavily bottlenecked by the Gated Delta Network (GDN) linear attention layers, which were still running in pure PyTorch with sequential Python loops.</p>
 <hr>
 <h2 id="optimizing-gated-delta-attention">Optimizing Gated Delta Attention</h2>
@@ -652,7 +653,7 @@ def _dot_f32(a, b):
 <ol start="3">
 <li><strong>Adaptive Tiling:</strong> We adjusted tile sizes dynamically depending on the workload:</li>
 </ol>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Parameter</th>
@@ -679,7 +680,7 @@ def _dot_f32(a, b):
 <td>2</td>
 <td>Reduces sync overhead on smaller sequence batches</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h4 id="the-decode-kernel">The Decode Kernel</h4>
 <p>For the single-token decode kernel, things are simpler since we don&#39;t need chunking. We map the grid over batch and heads:</p>
 <ol>
@@ -717,7 +718,7 @@ def gdn_decode_kernel(...):
 </div>
 <h3 id="performance-gains-stage-2">Performance Gains (Stage 2)</h3>
 <p><img src="/blog/images/triton_linear_attention.png" alt="Profiler trace with fused GDN kernels, showing a clean decode step free of Python loop overhead"></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Implementation</th>
@@ -740,7 +741,7 @@ def gdn_decode_kernel(...):
 <td>1.81 s</td>
 <td><strong>~83 tok/s</strong> (5.2x speedup)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <hr>
 <h2 id="triton-vs-other-frameworks">Triton vs. Other Frameworks</h2>
 <p>When choosing how to write these kernels, there were three main options:</p>
@@ -758,7 +759,7 @@ def gdn_decode_kernel(...):
 </ul>
 <h3 id="why-i-stuck-with-triton">Why I Stuck With Triton</h3>
 <p>Even with these issues, Triton was the right choice for this project:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Factor</th>
@@ -791,12 +792,12 @@ def gdn_decode_kernel(...):
 <td>2 weeks</td>
 <td>2+ months(I have fulltime college :( )</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>Ultimately, hitting 83 tokens/second in a couple of weeks with Triton is a much better engineering tradeoff than spending months in C++ to chase a marginal single-digit performance gain.</p>
 <hr>
 <h2 id="comparison-with-vllm">Comparison with vLLM</h2>
 <p>To see where these optimizations stand relative to a production serving system, I benchmarked our setup against vLLM on the same B200 hardware:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>System</th>
@@ -814,10 +815,10 @@ def gdn_decode_kernel(...):
 <td><strong>~250 tok/s</strong></td>
 <td>Production stack (PagedAttention, CUDA Graphs, scheduling)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <h3 id="analyzing-the-performance-difference">Analyzing the Performance Difference</h3>
 <p>The 3x throughput gap is due to systems-level architecture rather than raw kernel execution speeds:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Optimization</th>
@@ -845,7 +846,7 @@ def gdn_decode_kernel(...):
 <td>Python-driven loop</td>
 <td>Optimized C++ scheduling / engine</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>In a production environment, kernel and systems-level optimizations are complementary. The custom Triton kernels developed here could be plugged directly into an engine like vLLM to gain the benefits of PagedAttention and CUDA Graphs.</p>
 <h3 id="when-to-stop-optimizing">When to Stop Optimizing</h3>
 <p>At 83 tokens/second, we hit the point of diminishing returns for kernel optimization:</p>

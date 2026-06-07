@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/03_the_naive_copy/"
   },
   "keywords": "CUDA",
-  "wordCount": 1781,
+  "wordCount": 1782,
   "timeRequired": "PT9M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -437,7 +438,7 @@ AutoVectorizingCopy   (vector,  64-bit)     205.30 GB/s   ( 0.638 ms for 1000 it
 <li><strong>MaxVecBits</strong> ;  CuTe caps vectorization at this value (default 128 bits). You can lower it for testing, but 128 is the sweet spot for most GPU architectures.</li>
 </ol>
 <p><strong>The Copy Atom Hierarchy:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Copy Operation</th>
@@ -465,7 +466,7 @@ AutoVectorizingCopy   (vector,  64-bit)     205.30 GB/s   ( 0.638 ms for 1000 it
 <td align="left">Up to 8 bits</td>
 <td align="left">Conservative ;  CuTe uses this for dynamic layouts. Essentially scalar.</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong>Hardware Note:</strong> The GPU memory bus fetches 128 bits (or 32 bytes on some architectures) per transaction regardless of how much you asked for. Scalar loads waste bus bandwidth. Vectorized loads use the full transaction. This is why <code>LDG.128</code> doesn&#39;t cost more latency than <code>LDG.32</code> ;  the memory controller does the same work either way. You&#39;re just <em>using</em> more of what it already fetched.</p>
 <blockquote>
 <p><strong>Gotcha:</strong> CuTe&#39;s auto-vectorization is a <strong>compile-time</strong> decision. If your layouts are dynamic (runtime shapes/strides), CuTe can&#39;t prove contiguity at compile time and falls back to scalar. Use <code>Int&lt;N&gt;{}</code> (static integers) for shapes and strides whenever possible ;  it&#39;s not just about performance, it&#39;s about enabling vectorization.</p>

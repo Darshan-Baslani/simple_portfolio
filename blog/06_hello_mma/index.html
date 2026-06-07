@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/06_hello_mma/"
   },
   "keywords": "CUDA",
-  "wordCount": 3268,
+  "wordCount": 3273,
   "timeRequired": "PT17M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -229,7 +230,7 @@
 <p>A Tensor Core executes a matrix multiply-accumulate (MMA) as a single hardware instruction. The SM80 <code>mma.sync.aligned.m16n8k16</code> instruction multiplies a 16×16 half-precision matrix by an 8×16 half-precision matrix and accumulates into a 16×8 float matrix ;  <strong>2048 multiply-adds in a single instruction</strong>, across all 32 threads of a warp. (Note: this instruction has a latency of 20+ cycles; &quot;single instruction&quot; means one issue slot, not one clock cycle. See <em>Hardware note ;  throughput</em> below.)</p>
 <p>The catch: you can&#39;t just pass pointers. The hardware expects A, B, and C fragments to be distributed across 32 threads in a <strong>very specific register layout</strong>. Thread 0 holds certain rows and columns of A, thread 7 holds others, and the MMA instruction reaches into all 32 threads&#39; registers simultaneously. Get the distribution wrong and you get garbage ;  or a hardware trap.</p>
 <p>CuTe&#39;s <code>TiledMMA</code> handles this distribution for you, using the <strong>exact same partition pattern</strong> you learned with <code>TiledCopy</code>:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">TiledCopy (Tutorial 04)</th>
@@ -252,7 +253,7 @@
 <td align="left"><code>copy(tiled_copy, src, dst)</code></td>
 <td align="left"><code>gemm(tiled_mma, fragA, fragB, fragC)</code></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>Same API shape, different hardware backend. If you understood Tutorial 04&#39;s ownership maps and partitions, you already know 80% of this tutorial.</p>
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, the same <code>TiledMMA</code> pattern drives WGMMA (Warpgroup MMA) ;  128 threads feeding a larger Tensor Core instruction. Tutorial 09 covers that. The API is identical; only the atom changes.</p>
@@ -512,7 +513,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <h2 id="4-step-by-step-explanation">4. Step-by-Step Explanation</h2>
 <p><strong>Line: <code>using MMA_Op = SM80_16x8x16_F32F16F16F32_TN;</code></strong></p>
 <p>This names the PTX instruction we want: <code>mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32</code>. The naming convention:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Part</th>
@@ -535,7 +536,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <td align="left"><code>TN</code></td>
 <td align="left">A is K-major (Transposed), B is K-major (Normal)</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>The &quot;TN&quot; layout is the most common: both A and B have their K dimension as stride-1. This means your shared memory layouts for A(M,K) and B(N,K) should both have K as the fast-moving axis.</p>
 <p><strong>Line: <code>auto tiled_mma = make_tiled_mma(MMA_Atom&lt;MMA_Op&gt;{});</code></strong></p>
 <p>Wraps the raw hardware instruction in CuTe&#39;s <code>MMA_Atom</code>, then promotes it to a <code>TiledMMA</code>. With no extra tiling arguments, this creates the simplest possible MMA ;  one atom, one warp, no repetition. The tile size is exactly 16×8×16.</p>
@@ -576,7 +577,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <p>This analogy extends the Tutorial 03–04 warehouse metaphor: data arrives from the truck (global memory) via the loading dock (TiledCopy + smem), and now the stamping press (TiledMMA) processes it in the factory. The same workers (threads) do both jobs ;  they just switch from mover role to machine-operator role.</p>
 <p><strong>Fragment size formula:</strong></p>
 <p>For any MMA atom with shape M×N×K using W threads:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Fragment</th>
@@ -599,10 +600,10 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <td align="left">M × N / W</td>
 <td align="left">M × N</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>For SM80_16x8x16 with W=32: A = 8 halfs, B = 4 halfs, C = 4 floats.</p>
 <p><strong>What &quot;TN&quot; means for your layouts:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Layout</th>
@@ -630,7 +631,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <td align="left">M stride-1 <code>(1, M)</code></td>
 <td align="left">K stride-1 <code>(K, 1)</code></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>TN is the most common because both A and B have K contiguous ;  global memory loads along the K-reduction dimension are coalesced.</p>
 <p><strong>The ownership map tells you something important:</strong></p>
 <p>Thread T00 owns C[0][0], C[0][1], C[8][0], C[8][1]. These four values are <em>not</em> contiguous in column-major memory (offsets 0, 16, 8, 24). This means writing the C accumulator to global memory via <code>copy(accum, tCgC)</code> produces scattered stores ;  each thread writes 4 separate floats to non-contiguous addresses. For a real GEMM kernel (Tutorial 07), the epilogue stage would use a TiledCopy to reorganize the writes through shared memory for coalesced global stores.</p>
@@ -641,7 +642,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 </code></pre>
 <p><strong>Hardware note ;  latency vs. throughput:</strong></p>
 <p>A single <code>mma.sync.m16n8k16</code> has a <strong>latency</strong> of 20+ clock cycles ;  the result isn&#39;t ready to read for that long. But the <strong>maximum issue frequency</strong> (throughput) is much higher than one-per-20-cycles, because the Tensor Core is pipelined. The exact throughput depends on the GPU architecture:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">GPU</th>
@@ -660,7 +661,7 @@ m=15   16.0    16.0    16.0    16.0    16.0    16.0    16.0    16.0
 <td align="left">Some other consumer GPUs</td>
 <td align="left">1 MMA per 32 cycles</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>On A100, each SM has 4 partitions (sub-partitions / warp schedulers), so the SM-wide throughput is one MMA per 2 cycles, or 2048 FMAs every 2 cycles. Multiply by 108 SMs and a 1.41 GHz clock and you get the advertised Tensor Core TFLOPS ;  but only if the data pipeline (Tutorials 03–05) keeps the Tensor Cores fed and you have enough independent MMAs in flight to hide the 20+ cycle latency.</p>
 <blockquote>
 <p><strong>Gotcha ;  layout mismatch:</strong> If your smem layout doesn&#39;t match the TN convention (K stride-1), the MMA will read the wrong elements. The symptom is silently wrong results, not a crash. Always double-check that your A and B shared memory strides put K as stride-1 for TN atoms.</p>

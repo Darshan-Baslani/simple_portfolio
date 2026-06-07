@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/01_hello_layout/"
   },
   "keywords": "CUDA",
-  "wordCount": 1142,
+  "wordCount": 1143,
   "timeRequired": "PT6M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -366,7 +367,7 @@ Layout: (_2,_4):(_8,_1)
 <p><strong>Analogy:</strong> A Layout is a <em>spreadsheet formula</em> for memory. The Shape is how many rows and columns the spreadsheet has. The Stride is the formula in each cell that says &quot;to find my data, take my row number × <em>this</em> + my column number × <em>that</em>.&quot; Change the formula, change the order data is fetched from RAM ;  but the spreadsheet looks identical to the user.</p>
 <p><strong>Hardware Note:</strong> On B200/Hopper GPUs, when you set up a TMA descriptor with <code>make_tma_copy</code>, you must provide a Layout that describes the tensor&#39;s shape and strides in global memory. If you get the strides wrong, the TMA engine will fetch garbage. The concepts from this tutorial ;  <code>make_shape</code>, <code>make_stride</code>, column-major vs. row-major ;  are <em>exactly</em> what the TMA descriptor encodes.</p>
 <p><strong>CuTe Notation Cheat-Sheet:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Notation</th>
@@ -401,7 +402,7 @@ Layout: (_2,_4):(_8,_1)
 <td align="left"><code>LayoutRight</code></td>
 <td align="left">Row-major stride generation</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 
             </div>
         </article>

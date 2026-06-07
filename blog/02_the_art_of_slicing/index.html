@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/02_the_art_of_slicing/"
   },
   "keywords": "CUDA",
-  "wordCount": 1513,
+  "wordCount": 1515,
   "timeRequired": "PT8M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -235,7 +236,7 @@ int thr_col   = threadIdx.x / THR_M;
 </code></pre>
 <p>This is fragile. Change the tile size? Rewrite the math. Transpose a matrix? Rewrite it again. Add a K-dimension for GEMM? Rewrite it <em>again</em>.</p>
 <p>CuTe replaces all of this with two composable operations:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Operation</th>
@@ -253,7 +254,7 @@ int thr_col   = threadIdx.x / THR_M;
 <td align="left">Thread</td>
 <td align="left">&quot;Give this thread its elements from the tile.&quot;</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>Both work on any shape, any stride, any number of dimensions.</p>
 <blockquote>
 <p><strong>B200 Note:</strong> When you program the TMA engine on Hopper/Blackwell, you still need <code>local_tile</code> to select <em>which</em> tile the TMA should fetch. The TMA descriptor handles the copy, but you tell it <em>where</em> to point using the exact same tiling logic described here.</p>
@@ -422,7 +423,7 @@ Thread 0 owns elements: 0 1 8 9
 <p>The key invariant: <strong>every element is owned by exactly one block and exactly one thread within that block.</strong> No overlap, no gaps (assuming tile sizes evenly divide the matrix ;  see the <a href="https://www.dcbaslani.xyz/blog/0y_predication/">predication tutorial</a> for handling remainders).</p>
 <p><strong>Hardware Note:</strong> On Hopper/B200, the tile coordinate you compute with <code>local_tile</code> is the <em>same</em> coordinate you pass to <code>cute::copy</code> with a TMA atom. The TMA engine uses the descriptor&#39;s shape/stride (from Tutorial 01) and this coordinate to DMA the right tile into shared memory ;  zero address math in registers.</p>
 <p><strong>The <code>local_tile</code> / <code>local_partition</code> Cheat-Sheet:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Function</th>
@@ -446,7 +447,7 @@ Thread 0 owns elements: 0 1 8 9
 <td align="left">Thread layout + thread idx</td>
 <td align="left">That thread&#39;s elements</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong>Under the hood ;  both use <code>zipped_divide</code>:</strong></p>
 <pre><code class="language-text">zipped_divide(data, tiler)  →  ((Tile), (Rest))
                                   │         │

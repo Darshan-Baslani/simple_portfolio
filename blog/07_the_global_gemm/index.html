@@ -59,7 +59,7 @@
     "@id": "https://www.dcbaslani.xyz/blog/07_the_global_gemm/"
   },
   "keywords": "CUDA",
-  "wordCount": 3308,
+  "wordCount": 3310,
   "timeRequired": "PT17M"
 }
     </script>
@@ -156,8 +156,9 @@
         .blog-content code { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace; font-size: 0.9em; background: var(--tag-bg); padding: 2px 6px; border-radius: 4px; }
         .blog-content pre { margin: 1.5rem 0; border-radius: 8px; overflow-x: auto; }
         .blog-content pre code { display: block; padding: 1.25rem; background: #0d1117; color: #e6edf3; font-size: 0.85rem; line-height: 1.6; border-radius: 8px; overflow-x: auto; }
-        .blog-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; overflow-x: auto; display: block; }
-        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; }
+        .blog-content .table-scroll { width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .blog-content th, .blog-content td { border: 1px solid var(--border-color); padding: 0.6rem 1rem; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
         .blog-content th { background: var(--card-bg); font-weight: 600; }
         .blog-content tr:nth-child(even) { background: var(--card-bg); }
         .blog-content hr { border: none; border-top: 1px solid var(--border-color); margin: 2.5rem 0; }
@@ -227,7 +228,7 @@
 <h2 id="1-the-problem-the-why">1. The Problem (The &quot;Why&quot;)</h2>
 <p>Tutorial 06 triggered a single Tensor Core instruction on a 16×8×16 (M×N×K) micro-tile. That&#39;s 2048 multiply-adds ;  impressive for one instruction, but real-world matrices are thousands of elements wide. You need to compute C(M×N) = A(M×K) × Bᵀ(N×K) where M, N, and K can each be 4096 or more.</p>
 <p>The answer isn&#39;t one giant instruction. It&#39;s <strong>tiling</strong> ;  the same idea from Tutorial 02, now applied at every level:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Level</th>
@@ -250,7 +251,7 @@
 <td align="left">Each BLK_M×BLK_N tile is further divided by the <code>TiledMMA</code> across 4 warps</td>
 <td align="left"><code>partition_A/B/C</code> + <code>gemm()</code></td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>This is the structure of every high-performance GEMM on GPUs ;  from CUTLASS to cuBLAS. The names change but the three-level tiling is always the same. This tutorial writes that kernel from scratch, using nothing but the CuTe primitives you already know.</p>
 <blockquote>
 <p><strong>B200 Note:</strong> On Hopper/Blackwell, the structure is identical but the data-movement layer changes: TiledCopy with <code>cp.async</code> or TMA replaces explicit loads, and the K-loop becomes a software pipeline (Tutorial 10). The compute layer (<code>TiledMMA</code> + <code>gemm()</code>) stays the same.</p>
@@ -660,7 +661,7 @@ auto accum = make_fragment_like(tCgC);  // C accumulator
 </ul>
 <p>The three-level tiling is the single most important structural insight for GPU GEMM. Everything else ;  pipelining, double buffering, warpgroup MMA ;  is optimization on top of this skeleton.</p>
 <p><strong>Tile size cheat sheet:</strong></p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th align="left">Parameter</th>
@@ -683,7 +684,7 @@ auto accum = make_fragment_like(tCgC);  // C accumulator
 <td align="left">128 (4 warps), 256 (8 warps)</td>
 <td align="left">More threads → more copy bandwidth, but more MMA rep sharing overhead.</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong>Why the swizzle parameters are <code>&lt;3, 3, 3&gt;</code> for half:</strong></p>
 <ul>
 <li>M=3: 2^3 = 8 halfs = 128 bits stay contiguous. Matches the 128-bit vectorized copy.</li>
