@@ -4323,7 +4323,7 @@ i.e., the number of **distinct 128-byte aligned segments** touched.
 ```mermaid
 graph TD
     subgraph "Occupancy Limiters"
-        REG["Register Usage<br/>65,536 regs / regs per thread x 32<br/>= max warps from registers"]
+        REG["Register Usage<br/>65,536 regs / (regs per thread x 32)<br/>= max warps from registers"]
         SMEM_L["Shared Memory Usage<br/>Max shared mem / smem per block<br/>= max blocks then max warps"]
         BLK["Block Size<br/>Max 32 blocks/SM<br/>Small blocks waste slots"]
     end

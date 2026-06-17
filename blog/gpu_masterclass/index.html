@@ -166,6 +166,7 @@
 
         /* Mermaid diagrams */
         .blog-content pre.mermaid { background: transparent; border: none; text-align: center; padding: 1rem 0; overflow-x: auto; }
+        .blog-content pre.mermaid * { font-family: var(--font-main), sans-serif !important; line-height: 1.2 !important; }
 
         /* KaTeX math */
         .math-display { margin: 1.5rem 0; text-align: center; overflow-x: auto; }
@@ -945,7 +946,7 @@ __global__ void random_access(float* data, int* indices) {
 <p><strong>Occupancy</strong> = Active warps / Maximum warps per SM</p>
 <pre class="mermaid">graph TD
     subgraph "Occupancy Limiters"
-        REG["Register Usage<br/>65,536 regs / regs per thread x 32<br/>= max warps from registers"]
+        REG["Register Usage<br/>65,536 regs / (regs per thread x 32)<br/>= max warps from registers"]
         SMEM_L["Shared Memory Usage<br/>Max shared mem / smem per block<br/>= max blocks then max warps"]
         BLK["Block Size<br/>Max 32 blocks/SM<br/>Small blocks waste slots"]
     end

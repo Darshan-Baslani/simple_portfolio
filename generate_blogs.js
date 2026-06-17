@@ -635,6 +635,7 @@ ${postJsonLd}
 
         /* Mermaid diagrams */
         .blog-content pre.mermaid { background: transparent; border: none; text-align: center; padding: 1rem 0; overflow-x: auto; }
+        .blog-content pre.mermaid * { font-family: var(--font-main), sans-serif !important; line-height: 1.2 !important; }
 
         /* KaTeX math */
         .math-display { margin: 1.5rem 0; text-align: center; overflow-x: auto; }
