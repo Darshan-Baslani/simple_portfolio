@@ -1118,19 +1118,43 @@ The Tensor Core skips zero multiplications → **2x throughput**.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Init: mbarrier.init count=N
+    [*] --> P0_Accumulating : mbarrier.init(count = N)
     
-    Init --> Phase0_Waiting: Phase 0 begins
+    state "Phase 0 (Parity = 0)" as Phase0 {
+        state "Accumulating & Waiting" as P0_Accumulating
+        state "Phase 0 Complete" as P0_Complete
+        
+        P0_Accumulating --> P0_Accumulating : mbarrier.arrive() [count--]
+        P0_Accumulating --> P0_Accumulating : expect_tx(bytes) [tx_count += bytes]
+        P0_Accumulating --> P0_Accumulating : cp.async / TMA completion [tx_count -= bytes]
+        
+        P0_Accumulating --> P0_Complete : [count == 0] AND [tx_count == 0]
+        
+        note right of P0_Accumulating
+            Waiters on try_wait(phase=0) block
+            as long as Phase Parity is 0.
+        end note
+    }
     
-    Phase0_Waiting --> Phase0_Waiting: arrive count--
-    Phase0_Waiting --> Phase0_Complete: count reaches 0
+    P0_Complete --> P1_Accumulating : Auto-Flip Parity to 1 & Reset count = N
     
-    Phase0_Complete --> Phase1_Waiting: Phase flips to 1
+    state "Phase 1 (Parity = 1)" as Phase1 {
+        state "Accumulating & Waiting" as P1_Accumulating
+        state "Phase 1 Complete" as P1_Complete
+        
+        P1_Accumulating --> P1_Accumulating : mbarrier.arrive() [count--]
+        P1_Accumulating --> P1_Accumulating : expect_tx(bytes) [tx_count += bytes]
+        P1_Accumulating --> P1_Accumulating : cp.async / TMA completion [tx_count -= bytes]
+        
+        P1_Accumulating --> P1_Complete : [count == 0] AND [tx_count == 0]
+        
+        note right of P1_Accumulating
+            Waiters on try_wait(phase=1) block
+            as long as Phase Parity is 1.
+        end note
+    }
     
-    Phase1_Waiting --> Phase1_Waiting: arrive count--
-    Phase1_Waiting --> Phase1_Complete: count reaches 0
-    
-    Phase1_Complete --> Phase0_Waiting: Phase flips back to 0
+    P1_Complete --> P0_Accumulating : Auto-Flip Parity to 0 & Reset count = N
 ```
 
 > **Phase 0 note**: Threads call `mbarrier.arrive()`, async ops arrive automatically. Waiters spin on `try_wait(phase=0)`.
@@ -1218,21 +1242,46 @@ On Hopper, the **TMA hardware** automatically arrives at an mbarrier when its co
 
 ```mermaid
 sequenceDiagram
-    participant Thread as Warp Thread
-    participant TMA as TMA Engine
-    participant MBAR as mbarrier
-    participant SMEM as Shared Memory
+    autonumber
+    participant Warp as Warp Threads
+    participant MBAR as mbarrier (SMEM)
+    participant TMA as TMA Engine (Hardware)
     participant GMEM as Global Memory
+    participant SMEM as Shared Memory (SMEM)
 
-    Thread->>MBAR: mbarrier.arrive.expect_tx(bytes)
-    Thread->>TMA: cp.async.bulk.tensor [smem], [tensorMap], [mbar]
-    Note right of Thread: Thread continues other work!
-    TMA->>GMEM: Read tensor tile
-    GMEM-->>TMA: Data
-    TMA->>SMEM: Write to shared memory
+    Note over Warp, MBAR: Setup Phase (e.g. Phase 0)
+    Warp->>MBAR: mbarrier.arrive.expect_tx(bytes)
+    Note right of MBAR: count -= 1<br/>tx_count += bytes
+    
+    Warp->>TMA: cp.async.bulk.tensor [smem], [tensorMap], [mbar]
+    activate TMA
+    Note over Warp: Warp continues other math/compute in parallel
+    activate Warp
+    Warp->>Warp: Independent Work / Math
+    deactivate Warp
+    
+    Note over TMA, GMEM: Asynchronous Memory Transfer
+    TMA->>GMEM: Read tensor tile data
+    activate GMEM
+    GMEM-->>TMA: Return data
+    deactivate GMEM
+    TMA->>SMEM: Write data directly to Shared Memory
+    activate SMEM
+    Note over SMEM: Data written to SMEM
+    deactivate SMEM
+    
     TMA->>MBAR: Hardware auto-arrive (tx_count -= bytes)
-    Note right of MBAR: When all arrivals + TX complete: phase flips
-    Thread->>MBAR: mbarrier.try_wait(phase) = complete!
+    deactivate TMA
+    Note right of MBAR: count == 0 and tx_count == 0:<br/>Phase flips (0 → 1)
+    
+    Note over Warp, MBAR: Synchronization
+    Warp->>MBAR: mbarrier.try_wait(phase=0)
+    activate MBAR
+    MBAR-->>Warp: returns True (Phase flipped, data ready)
+    deactivate MBAR
+    
+    Note over Warp, SMEM: Safe Data Consumption
+    Warp->>SMEM: Read tile data
 ```
 
 ---
