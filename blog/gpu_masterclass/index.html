@@ -165,12 +165,8 @@
         .blog-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1.5rem 0; }
 
         /* Mermaid diagrams */
-        .blog-content pre.mermaid { background: transparent; border: none; border-radius: 0; text-align: center; padding: 1rem 0; overflow-x: auto; overflow-y: visible; min-width: 0; }
-        .blog-content pre.mermaid svg { overflow: visible; max-width: 100%; height: auto; }
-        .blog-content pre.mermaid .nodeLabel, .blog-content pre.mermaid .edgeLabel { font-family: var(--font-main), sans-serif !important; }
-        .blog-content pre.mermaid .node rect, .blog-content pre.mermaid .node circle, .blog-content pre.mermaid .node polygon { overflow: visible; }
-        .blog-content pre.mermaid .node foreignObject { overflow: visible; }
-        .blog-content pre.mermaid .node foreignObject div { overflow: visible !important; white-space: normal !important; word-wrap: break-word !important; line-height: 1.4 !important; }
+        .blog-content pre.mermaid { background: transparent; border: none; text-align: center; padding: 1rem 0; overflow-x: auto; }
+        .blog-content pre.mermaid * { font-family: var(--font-main), sans-serif !important; line-height: 1.2 !important; }
 
         /* KaTeX math */
         .math-display { margin: 1.5rem 0; text-align: center; overflow-x: auto; }
@@ -1985,7 +1981,7 @@ Value = (-1)^s x 2^(e-1) x (1 + m/2)
     style M1 fill:#3498db,stroke:#333,color:#fff
     style M2 fill:#3498db,stroke:#333,color:#fff
     style M31 fill:#3498db,stroke:#333,color:#fff</pre>
-<p><strong>Effective value</strong>: <span class="math-inline">$v_i = \text{scale} \times \text{fp4}_i = 2^{\text{shared\\_exp}} \times (-1)^{s_i} \times 2^{(e_i - 1)} \times (1 + m_i/2)$</span></p>
+<p><strong>Effective value</strong>: <span class="math-inline">$v_i = \text{scale} \times \text{fp4}_i = 2^{\text{shared\_exp}} \times (-1)^{s_i} \times 2^{(e_i - 1)} \times (1 + m_i/2)$</span></p>
 <p>This gives FP4 the <strong>dynamic range</strong> of ~FP16 with the <strong>storage cost</strong> of 4 bits + amortized scale overhead.</p>
 <h3 id="why-this-matters-for-transformers">Why This Matters for Transformers</h3>
 <p>In transformer inference:</p>
@@ -2500,20 +2496,7 @@ bar.sync     0;                  // __syncthreads()
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'default',
-            securityLevel: 'loose',
-            flowchart: {
-                useMaxWidth: true,
-                htmlLabels: true,
-                wrappingWidth: 200
-            },
-            sequence: {
-                useMaxWidth: true,
-                wrap: true
-            }
-        });
+        mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
 
         // Store original diagram sources before first render
         document.querySelectorAll('pre.mermaid').forEach((el, i) => {
@@ -2526,20 +2509,7 @@ bar.sync     0;                  // __syncthreads()
 
         // Expose re-render function for theme toggle
         window.__reRenderMermaid = async function(theme) {
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: theme,
-                securityLevel: 'loose',
-                flowchart: {
-                    useMaxWidth: true,
-                    htmlLabels: true,
-                    wrappingWidth: 200
-                },
-                sequence: {
-                    useMaxWidth: true,
-                    wrap: true
-                }
-            });
+            mermaid.initialize({ startOnLoad: false, theme: theme });
             document.querySelectorAll('pre.mermaid').forEach(el => {
                 const src = el.getAttribute('data-mermaid-src');
                 if (src) {

@@ -2,13 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://www.dcbaslani.xyz/</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/blog/</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
@@ -230,31 +230,31 @@
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/llms.txt</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/llms-full.txt</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/blog/llms.txt</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/blog/index.md</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
         <loc>https://www.dcbaslani.xyz/blog/index.txt</loc>
-        <lastmod>2026-06-18</lastmod>
+        <lastmod>2026-06-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>

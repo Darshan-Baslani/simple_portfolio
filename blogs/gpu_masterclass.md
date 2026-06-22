@@ -1856,7 +1856,7 @@ graph TD
     style M31 fill:#3498db,stroke:#333,color:#fff
 ```
 
-**Effective value**: $v_i = \text{scale} \times \text{fp4}_i = 2^{\text{shared\\_exp}} \times (-1)^{s_i} \times 2^{(e_i - 1)} \times (1 + m_i/2)$
+**Effective value**: $v_i = \text{scale} \times \text{fp4}_i = 2^{\text{shared\_exp}} \times (-1)^{s_i} \times 2^{(e_i - 1)} \times (1 + m_i/2)$
 
 This gives FP4 the **dynamic range** of ~FP16 with the **storage cost** of 4 bits + amortized scale overhead.
 
