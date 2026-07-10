@@ -384,115 +384,7 @@
             background: #c4944e;
         }
 
-        /* --- 10. RIGHT NOW SECTION --- */
-        .right-now-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            transition: background-color 0.4s ease, border-color 0.4s ease;
-        }
-
-        .right-now-box .pulse-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #4caf50;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-            vertical-align: middle;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.3); }
-        }
-
-        .right-now-box .label {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .right-now-box p {
-            font-size: 1.05rem;
-            color: var(--text-main);
-            line-height: 1.7;
-        }
-
         /* --- 11. ABOUT ME / WHO I AM --- */
-        /* --- 12. FEATURED PROJECTS --- */
-        .project-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-
-        .project-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 2.25rem;
-            box-shadow: var(--shadow);
-            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                border-color 0.35s ease,
-                background-color 0.4s ease;
-        }
-
-        .project-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.1);
-            border-color: var(--accent);
-        }
-
-        .project-card .project-number {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent);
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .project-card h3 {
-            font-size: 1.35rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .project-card p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            line-height: 1.65;
-            margin-bottom: 1.25rem;
-        }
-
-        .project-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-
-        .project-links a {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--accent);
-            padding: 0.4rem 1rem;
-            border: 1px solid var(--accent);
-            border-radius: 6px;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        .project-links a:hover {
-            background: var(--accent);
-            color: #fff;
-        }
 
         /* --- 13. FOOTER CTA --- */
         .footer-cta {
@@ -606,7 +498,6 @@
                 <div class="logo">Darshan Baslani</div>
                 <div class="nav-links">
                     <a href="#about">About</a>
-                    <a href="#projects">Projects</a>
                     <a href="/blog/">Blogs</a>
                     <a href="#contact">Contact</a>
                     <button id="theme-toggle" aria-label="Toggle Dark Mode">
@@ -630,22 +521,11 @@
                 I am a student of compute, a thinker, and an engineer. I craft elegant systems from first principles, deconstructing complex frameworks to find the quiet beauty in bare-metal performance.
             </p>
             <div class="cta-group animate-enter delay-4">
-                <a href="docs/Darshan%20Baslani.pdf" class="cta-btn primary" target="_blank" rel="noopener noreferrer">Read My Resume</a>
-                <a href="/blog/" class="cta-btn">Check out my Blog</a>
+                <a href="/blog/" class="cta-btn primary">Check out my Blog</a>
                 <a href="https://github.com/Darshan-Baslani" class="cta-btn" target="_blank" rel="noopener noreferrer">View GitHub</a>
             </div>
         </section>
 
-        <!-- ========== RIGHT NOW ========== -->
-        <section id="right-now" class="content-section scroll-reveal">
-            <h2 class="section-title">Right Now</h2>
-            <div class="right-now-box">
-                <div class="label"><span class="pulse-dot"></span> What I'm working on</div>
-                <p>
-                    Currently deep-diving into the <strong>Qwen3.5 architecture</strong>. I am aggressively profiling bottlenecks using PyTorch Profiler, writing a <span class="highlight">Fused RMSNorm kernel in Triton</span>, and implementing a <span class="highlight">Gated Delta Net in Tile_lang (FlashQLA)</span> to maximize inference throughput.
-                </p>
-            </div>
-        </section>
 
         <!-- ========== ABOUT / WHO I AM ========== -->
         <section id="about" class="content-section scroll-reveal">
@@ -669,37 +549,6 @@
             </div>
         </section>
 
-        <!-- ========== FEATURED ENGINEERING HIGHLIGHTS ========== -->
-        <section id="projects" class="content-section scroll-reveal">
-            <h2 class="section-title">Featured Engineering Highlights</h2>
-            <div class="project-grid">
-                <div class="project-card">
-                    <div class="project-number">Project 01</div>
-                    <h3>GPU Kernel Optimization &amp; CuTe</h3>
-                    <p>Ranked <strong>#40 globally</strong> in the GPU Mode group competition by directing a custom AI agent to generate a high-performance Group GEMM kernel leveraging the NVFP4 datatype for the Blackwell B200. I also actively write deep-dive technical blogs breaking down complex memory layouts and the CuTe DSL.</p>
-                    <div class="project-links">
-                        <a href="/blog/" target="_blank" rel="noopener noreferrer">Read the Blog →</a>
-                        <a href="https://github.com/Darshan-Baslani" target="_blank" rel="noopener noreferrer">View the Code →</a>
-                    </div>
-                </div>
-                <div class="project-card">
-                    <div class="project-number">Project 02</div>
-                    <h3>Building Frameworks from Scratch</h3>
-                    <p>Engineered <strong>Vibegrad</strong>, a custom automatic differentiation library built entirely from scratch, and <strong>Simple-LLM</strong>, a GPT-style autoregressive model. I build these to master the mechanical constraints of computational graphs and efficient decoding strategies.</p>
-                    <div class="project-links">
-                        <a href="https://github.com/Darshan-Baslani/vibegrad" target="_blank" rel="noopener noreferrer">View Vibegrad →</a>
-                    </div>
-                </div>
-                <div class="project-card">
-                    <div class="project-number">Project 03</div>
-                    <h3>Gen AI Inference Acceleration</h3>
-                    <p>Rebuilt <strong>Stable Diffusion 1.5</strong> from first principles (UNet, VAE, CLIP) to profile denoising bottlenecks. By implementing Flash Attention-2 and precision quantization, I reduced inference latency by <strong>85%</strong> (33s down to 4.7s).</p>
-                    <div class="project-links">
-                        <a href="/blog/" target="_blank" rel="noopener noreferrer">Read the Optimization Worklog →</a>
-                    </div>
-                </div>
-            </div>
-        </section>
 
     </main>
 
