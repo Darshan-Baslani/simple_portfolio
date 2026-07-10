@@ -426,57 +426,7 @@
             line-height: 1.7;
         }
 
-        /* --- 11. WHY HIRE ME / TLDR --- */
-        .tldr-intro {
-            font-size: 1.15rem;
-            color: var(--text-muted);
-            max-width: 700px;
-            margin-bottom: 2.5rem;
-            line-height: 1.7;
-        }
-
-        .pillar-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
-
-        .pillar-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                border-color 0.35s ease,
-                background-color 0.4s ease;
-        }
-
-        .pillar-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.08);
-            border-color: var(--accent);
-        }
-
-        .pillar-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .pillar-card h3 .icon {
-            font-size: 1.3rem;
-        }
-
-        .pillar-card p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            line-height: 1.65;
-        }
-
+        /* --- 11. ABOUT ME / WHO I AM --- */
         /* --- 12. FEATURED PROJECTS --- */
         .project-grid {
             display: grid;
@@ -677,7 +627,7 @@
                 <span class="highlight">ML systems</span> from <span class="highlight">first principles</span>.
             </h1>
             <p class="bio animate-enter delay-3">
-                I am an intensely curious ML Systems Engineer specializing in GPU kernel optimization, AI inference, and low-level frameworks. I learn complex tech stacks rapidly and love squeezing every drop of performance out of hardware.
+                I am a student of compute, a thinker, and an engineer. I craft elegant systems from first principles, deconstructing complex frameworks to find the quiet beauty in bare-metal performance.
             </p>
             <div class="cta-group animate-enter delay-4">
                 <a href="docs/Darshan%20Baslani.pdf" class="cta-btn primary" target="_blank" rel="noopener noreferrer">Read My Resume</a>
@@ -697,25 +647,25 @@
             </div>
         </section>
 
-        <!-- ========== WHY HIRE ME / TL;DR ========== -->
+        <!-- ========== ABOUT / WHO I AM ========== -->
         <section id="about" class="content-section scroll-reveal">
-            <h2 class="section-title">The TL;DR</h2>
-            <p class="tldr-intro">
-                I don't just use APIs; I break them down to understand how they work under the hood. My engineering philosophy revolves around a <strong>mechanical understanding of compute</strong>.
-            </p>
-            <div class="pillar-grid">
-                <div class="pillar-card">
-                    <h3><span class="icon">⚙️</span> Low-Level Mastery</h3>
-                    <p>Fluent in C++, CUDA, and Go. From writing custom autograd engines to building OS-level container runtimes using Linux namespaces.</p>
-                </div>
-                <div class="pillar-card">
-                    <h3><span class="icon">🔥</span> Hardware Extraction</h3>
-                    <p>Experienced in optimizing for strict hardware constraints, achieving 110%+ of cuBLAS performance on local consumer GPUs, and deploying advanced optimizations for architectures like the NVIDIA Blackwell B200.</p>
-                </div>
-                <div class="pillar-card">
-                    <h3><span class="icon">🧠</span> Compiler &amp; Inference Focus</h3>
-                    <p>Deeply experienced with PyTorch, CuTe, Triton, and model quantization (FP16/INT8) to drastically reduce inference latency in generative architectures (Denoising &amp; Autoregressive).</p>
-                </div>
+            <h2 class="section-title">Who I Am</h2>
+            <div class="narrative-text">
+                <p>
+                    I am a student of everything around me. Coming from Palanpur, Gujarat, and a college far from the spotlight, the path into technology wasn’t paved for me. I realized early on that knowledge would not be handed to me; I would have to seek it, break it down, and make it my own. Everything I have built—from the fundamentals of OS-level virtualization to the intricate pathways of GPU kernel optimization—is born of that relentless curiosity.
+                </p>
+                <p>
+                    My strength is not loud. It lives in the quiet space of focus, in the willingness to sit with complexity until it yields. I believe the finest systems are built not by stacking APIs, but by deconstructing them. While my hands write C++, CUDA, and Go, my mind is constantly searching for ways to <span class="highlight">simplify the complex</span>—translating the intricate dance of memory layouts and tensor core partitions into ideas everyone can understand.
+                </p>
+                <p>
+                    I don't just use tools; I deconstruct them. Whether I am writing a custom autograd library, programming container runtimes from scratch, or tuning an algorithm to squeeze performance from hardware, I am guided by a singular pursuit: to touch the mechanical reality of compute and understand the <em>why</em> behind the <em>how</em>.
+                </p>
+                <p>
+                    I am a student of code, of math, of systems, and of life. I spend my hours in these worlds not out of pressure, but out of passion. I keep learning, reading, and building, because to me, it is the only way to grow.
+                </p>
+                <p>
+                    Along the way, I draw quiet inspiration from the thinkers and builders who dared to see the world differently—Srinivas Ramanujan, Vikram Sarabhai, Albert Einstein, and Elon Musk. :)
+                </p>
             </div>
         </section>
 
@@ -756,9 +706,9 @@
     <footer class="scroll-reveal" role="contentinfo">
         <div class="container" id="contact">
             <div class="footer-cta">
-                <h2>Looking for my next challenge.</h2>
+                <h2>Let's talk systems, compute, and complexity.</h2>
                 <p>
-                    I am currently seeking roles in ML Systems, AI Inference, and GPU Performance Engineering. If your team is tackling hard problems at the intersection of machine learning and bare-metal compute, let's talk.
+                    I'm always down to talk about custom autograd engines, GPU kernel optimizations, or the philosophy of low-level design. Drop a line if you're building interesting things or just want to swap ideas.
                 </p>
                 <div class="highlight-roles">
                     <span class="role-tag">ML Systems</span>
