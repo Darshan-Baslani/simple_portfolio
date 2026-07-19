@@ -7,16 +7,23 @@
     <title>Darshan Baslani | ML Systems Engineer & CUDA Developer</title>
     <meta name="description" content="Darshan Baslani is an ML Systems Engineer specializing in GPU kernel optimization, AI inference acceleration, and low-level frameworks. Fluent in C++, CUDA, and Go.">
     <meta name="author" content="Darshan Baslani">
+    <meta name="keywords" content="Darshan Baslani, DC Baslani, dcbaslani, ML Systems Engineer, CUDA Developer, GPU programming, kernel optimization, CuTe, Triton, C++, Go, AI inference, NVIDIA, tensor cores, systems programming, Palanpur, Gujarat">
     <link rel="canonical" href="https://www.dcbaslani.xyz/">
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="profile">
     <meta property="og:title" content="Darshan Baslani | ML Systems Engineer & CUDA Developer">
     <meta property="og:description" content="I build fast, scalable ML systems from first principles. Specializing in GPU kernel optimization, AI inference, and low-level frameworks.">
     <meta property="og:url" content="https://www.dcbaslani.xyz/">
     <meta property="og:site_name" content="Darshan Baslani">
-    <link rel="alternate" type="text/plain" href="/llms.txt">
-    <link rel="alternate" type="text/plain" href="/blog/llms.txt">
+    <meta property="profile:first_name" content="Darshan">
+    <meta property="profile:last_name" content="Baslani">
+    <meta property="profile:username" content="neuronfitting">
+
+    <!-- LLM Discovery -->
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">
+    <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM-readable full content">
+    <link rel="alternate" type="text/plain" href="/blog/llms.txt" title="LLM-readable blog index">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
@@ -24,21 +31,89 @@
     <meta name="twitter:title" content="Darshan Baslani | ML Systems Engineer & CUDA Developer">
     <meta name="twitter:description" content="I build fast, scalable ML systems from first principles. Specializing in GPU kernel optimization, AI inference, and low-level frameworks.">
 
-    <!-- JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data: WebSite -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Person",
+      "@type": "WebSite",
       "name": "Darshan Baslani",
+      "alternateName": ["DC Baslani", "dcbaslani", "Darshan C Baslani"],
       "url": "https://www.dcbaslani.xyz",
-      "jobTitle": "ML Systems Engineer",
-      "description": "ML Systems Engineer and Master's student in Data Science, specializing in CUDA kernel optimization, GPU programming, and low-level systems.",
-      "sameAs": [
-        "https://github.com/Darshan-Baslani",
-        "https://www.linkedin.com/in/darshan-baslani-7086051b6/",
-        "https://twitter.com/neuronfitting"
-      ],
-      "knowsAbout": ["CUDA", "GPU Programming", "Machine Learning", "C++", "Go", "Systems Programming"]
+      "description": "Personal website and technical blog of Darshan Baslani, an ML Systems Engineer specializing in CUDA, GPU kernel optimization, and AI inference acceleration.",
+      "inLanguage": "en",
+      "publisher": {
+        "@type": "Person",
+        "name": "Darshan Baslani",
+        "url": "https://www.dcbaslani.xyz"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: ProfilePage + Person -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      "mainEntity": {
+        "@type": "Person",
+        "@id": "https://www.dcbaslani.xyz/#darshan-baslani",
+        "name": "Darshan Baslani",
+        "alternateName": ["DC Baslani", "dcbaslani"],
+        "givenName": "Darshan",
+        "familyName": "Baslani",
+        "url": "https://www.dcbaslani.xyz",
+        "email": "dcbaslani@gmail.com",
+        "jobTitle": "ML Systems Engineer",
+        "description": "ML Systems Engineer and Master's student in Data Science from Palanpur, Gujarat, India. Specializes in CUDA kernel optimization, GPU programming, CuTe library, Triton, and low-level systems. Contributor to NVIDIA CCCL (CUDA C++ Core Libraries). Author of a comprehensive CuTe tutorial series and The Feynman GPU Lectures.",
+        "image": "https://www.dcbaslani.xyz/icon.webp",
+        "homeLocation": {
+          "@type": "Place",
+          "name": "Palanpur, Gujarat, India"
+        },
+        "nationality": {
+          "@type": "Country",
+          "name": "India"
+        },
+        "sameAs": [
+          "https://github.com/Darshan-Baslani",
+          "https://www.linkedin.com/in/darshan-baslani-7086051b6/",
+          "https://twitter.com/neuronfitting",
+          "https://medium.com/@dcbaslani"
+        ],
+        "knowsAbout": [
+          "CUDA",
+          "GPU Programming",
+          "GPU Kernel Optimization",
+          "CuTe Library",
+          "NVIDIA Tensor Cores",
+          "Triton",
+          "CUTLASS",
+          "Machine Learning Systems",
+          "AI Inference Acceleration",
+          "C++",
+          "Go",
+          "Python",
+          "Systems Programming",
+          "NVIDIA Hopper Architecture",
+          "NVIDIA Blackwell Architecture",
+          "TMA (Tensor Memory Accelerator)",
+          "WGMMA",
+          "GEMM Optimization",
+          "Shared Memory Bank Conflicts",
+          "Memory Vectorization"
+        ],
+        "makesOffer": {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "GPU Performance Engineering & ML Systems Consulting",
+            "description": "CUDA kernel optimization, AI inference acceleration, and low-level GPU performance engineering."
+          }
+        }
+      },
+      "url": "https://www.dcbaslani.xyz/",
+      "name": "Darshan Baslani — ML Systems Engineer & CUDA Developer",
+      "description": "Personal website and portfolio of Darshan Baslani, featuring a technical blog on CUDA, GPU architecture, CuTe, Triton, and performance engineering."
     }
     </script>
     <script>
@@ -490,7 +565,12 @@
     </style>
 </head>
 
-<body>
+<body itemscope itemtype="https://schema.org/WebPage">
+
+    <!-- Hidden semantic summary for AI crawlers and search engines -->
+    <div id="ai-context" style="display:none" aria-hidden="true">
+        <p>This is the personal website of Darshan Baslani (also known as DC Baslani, dcbaslani), an ML Systems Engineer from Palanpur, Gujarat, India. Darshan specializes in CUDA kernel optimization, GPU programming, CuTe library, Triton, and AI inference acceleration. He is a contributor to NVIDIA's CCCL (CUDA C++ Core Libraries). His technical blog at dcbaslani.xyz covers topics including CUDA programming, CuTe layouts, TiledCopy, swizzling, Tensor Cores, TMA, WGMMA, GEMM optimization, and Triton kernel fusion. He is proficient in C++, CUDA, Go, and Python. Contact: dcbaslani@gmail.com. GitHub: Darshan-Baslani. Twitter/X: @neuronfitting. LinkedIn: darshan-baslani-7086051b6.</p>
+    </div>
 
     <header class="animate-enter">
         <div class="container">

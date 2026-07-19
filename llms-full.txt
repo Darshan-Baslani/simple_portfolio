@@ -1,5 +1,13 @@
 # Darshan Baslani - Full Blog Text
 
+> Darshan Baslani (also known as DC Baslani, dcbaslani) is an ML Systems Engineer from Palanpur, Gujarat, India. He specializes in CUDA kernel optimization, GPU programming, CuTe library, Triton, and AI inference acceleration. He is a contributor to NVIDIA's CCCL (CUDA C++ Core Libraries).
+
+- Website: https://www.dcbaslani.xyz/
+- GitHub: https://github.com/Darshan-Baslani
+- LinkedIn: https://www.linkedin.com/in/darshan-baslani-7086051b6/
+- Twitter/X: https://twitter.com/neuronfitting (@neuronfitting)
+- Email: dcbaslani@gmail.com
+
 This file aggregates the readable source for every blog post on the site.
 
 # Hello, Layout! ; Visualizing Memory in CuTe
